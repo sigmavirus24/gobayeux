@@ -13,12 +13,15 @@ const (
 	MetaHandshake Channel = "/meta/handshake"
 	// MetaConnect is the Channel used for connect messages after a successful
 	// handshake.
-	MetaConnect = "/meta/connect"
+	MetaConnect Channel = "/meta/connect"
+	// MetaDisconnect is the Channel used for disconnect messages.
+	MetaDisconnect Channel = "/meta/disconnect"
 	// MetaSubscribe is the Channel used by a client to subscribe to channels.
-	MetaSubscribe = "/meta/subscribe"
+	MetaSubscribe Channel = "/meta/subscribe"
 	// MetaUnsubscribe is the Channel used by a client to unsubscribe to
 	// channels.
-	MetaUnsubscribe = "/meta/unsubscribe"
+	MetaUnsubscribe Channel = "/meta/unsubscribe"
+	emptyChannel    Channel = ""
 )
 
 // TODO: Determine if supporting parameters in channels would be useful:
@@ -34,14 +37,14 @@ const (
 	// MetaChannel represents the `/meta/` channel type
 	MetaChannel ChannelType = "meta"
 	// ServiceChannel represents the `/service/` channel type
-	ServiceChannel = "service"
+	ServiceChannel ChannelType = "service"
 	// BroadcastChannel represents all other channels
-	BroadcastChannel = "broadcast"
+	BroadcastChannel ChannelType = "broadcast"
 )
 
 const (
 	metaPrefix    string = "/meta/"
-	servicePrefix        = "/service/"
+	servicePrefix string = "/service/"
 )
 
 // Type provides the type of Channel this struct represents
@@ -62,6 +65,20 @@ func (c Channel) Type() ChannelType {
 func (c Channel) HasWildcard() bool {
 	s := string(c)
 	return strings.HasSuffix(s, "*")
+}
+
+// IsValid does its best to check the validity of a Channel
+func (c Channel) IsValid() bool {
+	s := string(c)
+	if strings.Contains(s, "*") && !c.HasWildcard() {
+		return false
+	}
+
+	if !strings.HasPrefix(s, "/") {
+		return false
+	}
+
+	return true
 }
 
 // Match checks if a given Channel matches this Channel.
