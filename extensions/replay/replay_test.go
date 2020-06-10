@@ -140,6 +140,11 @@ func TestIncomingUpdatesReplayIDStore(t *testing.T) {
 			want: 2,
 		},
 		{
+			name: "replay id is not a 'Number'",
+			data: `{"event": {"replayId": "abc", "body": "data"}}`,
+			want: 2,
+		},
+		{
 			name: "missing event in data",
 			data: `{"not_an_event": {"replay": 2, "body": "data"}}`,
 			want: 1,
@@ -156,7 +161,7 @@ func TestIncomingUpdatesReplayIDStore(t *testing.T) {
 		},
 		{
 			name: "message data isn't json",
-			data: `just some plain text`,
+			data: "just some plain text",
 			want: 1,
 		},
 	}
@@ -182,6 +187,20 @@ func TestIncomingUpdatesReplayIDStore(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestRegistered(t *testing.T) {
+	e := New()
+	e.Registered(ExtensionName, nil)
+	// NOTE: These functions do nothing but test stubs are nice for test
+	// coverage
+}
+
+func TestUnregistered(t *testing.T) {
+	e := New()
+	e.Unregistered()
+	// NOTE: These functions do nothing but test stubs are nice for test
+	// coverage
 }
 
 func TestMapStorageSet(t *testing.T) {

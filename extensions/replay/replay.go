@@ -89,7 +89,6 @@ func (e *Extension) Registered(extensionName string, client *bayeux.BayeuxClient
 
 // Unregistered is called when an extension is unregistered
 func (e *Extension) Unregistered() {
-	e.replayStore = nil
 }
 
 func (e *Extension) updateReplayID(ms *bayeux.Message) {
