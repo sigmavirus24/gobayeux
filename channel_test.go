@@ -82,6 +82,51 @@ func TestHasWildcard(t *testing.T) {
 	}
 }
 
+func TestIsValid(t *testing.T) {
+	tests := []struct {
+		name  string
+		input Channel
+		want  bool
+	}{
+		{
+			name:  "valid channel without wildcards",
+			input: "/foo",
+			want:  true,
+		},
+		{
+			name:  "valid channel with single wildcard",
+			input: "/foo/*",
+			want:  true,
+		},
+		{
+			name:  "valid channel with double wildcard",
+			input: "/foo/**",
+			want:  true,
+		},
+		{
+			name:  "invalid channel with wildcard",
+			input: "/foo/*/bar",
+			want:  false,
+		},
+		{
+			name:  "invalid channel",
+			input: "foo/bar",
+			want:  false,
+		},
+	}
+
+	for _, testCase := range tests {
+		tc := testCase
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			if got := tc.input.IsValid(); tc.want != got {
+				t.Errorf("expected Channel(\"%s\").IsValid() == %v, got %v", string(tc.input), tc.want, got)
+			}
+		})
+	}
+}
+
 func TestMatch(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -124,6 +169,24 @@ func TestMatch(t *testing.T) {
 			pattern: "/foo/**",
 			input:   "/foo/bar/baz",
 			want:    true,
+		},
+		{
+			name:    "matching an invalid channel with wildcards",
+			pattern: "*",
+			input:   "/foo",
+			want:    false,
+		},
+		{
+			name:    "matching against a wildcard with different prefix",
+			pattern: "/foo/*",
+			input:   "/bar/baz",
+			want:    false,
+		},
+		{
+			name:    "invalid wildcard pattern",
+			pattern: "/foo/***",
+			input:   "/foo/bar",
+			want:    false,
 		},
 	}
 

@@ -100,6 +100,58 @@ func TestMessage_ParseError(t *testing.T) {
 	}
 }
 
+func TestMessage_GetExt(t *testing.T) {
+	testCases := []struct {
+		name         string
+		message      *Message
+		shouldCreate bool
+		want         map[string]interface{}
+	}{
+		{
+			name:         "nil extension is initialized as a map with create=true",
+			message:      &Message{},
+			shouldCreate: true,
+			want:         make(map[string]interface{}),
+		},
+		{
+			name:         "nil extension is not initialized with create=false",
+			message:      &Message{},
+			shouldCreate: false,
+			want:         nil,
+		},
+		{
+			name:         "non-nil extension is not overwritten with create=true",
+			message:      &Message{Ext: map[string]interface{}{"foo": "bar"}},
+			shouldCreate: true,
+			want:         map[string]interface{}{"foo": "bar"},
+		},
+	}
+
+	for _, testCase := range testCases {
+		tc := testCase
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			got := tc.message.GetExt(tc.shouldCreate)
+			if tc.want == nil && got != nil {
+				t.Errorf("expected GetExt(%v) to return nil, got %v", tc.shouldCreate, got)
+			}
+			if tc.want != nil && got == nil {
+				t.Errorf("expected GetExt(%v) to return %v, got nil", tc.shouldCreate, tc.want)
+			}
+			if len(tc.want) == len(got) {
+				for k, vi := range tc.want {
+					wantv, _ := vi.(string)
+					gotv, _ := got[k].(string)
+					if wantv != gotv {
+						t.Errorf("expected Ext[%s] == %s, got %s", k, wantv, gotv)
+					}
+				}
+			}
+		})
+	}
+}
+
 func TestAdvice_MustNotRetryOrHandshake(t *testing.T) {
 	testCases := []struct {
 		name      string
@@ -228,6 +280,40 @@ func TestAdvice_TimeoutAsDuration(t *testing.T) {
 			a := Advice{Timeout: tc.timeout}
 			if got, want := a.TimeoutAsDuration(), tc.expected; want != got {
 				t.Errorf("expected TimeoutAsDuration() = %v, got %v", want, got)
+			}
+		})
+	}
+}
+
+func TestAdvice_IntervalAsDuration(t *testing.T) {
+	testCases := []struct {
+		name     string
+		interval int
+		expected time.Duration
+	}{
+		{
+			"two seconds",
+			2000,
+			time.Duration(2) * time.Second,
+		},
+		{
+			"two hundred milliseconds",
+			200,
+			time.Duration(200) * time.Millisecond,
+		},
+		{
+			"three minutes",
+			180000,
+			time.Duration(3) * time.Minute,
+		},
+	}
+
+	for _, testCase := range testCases {
+		tc := testCase
+		t.Run(tc.name, func(t *testing.T) {
+			a := Advice{Interval: tc.interval}
+			if got, want := a.IntervalAsDuration(), tc.expected; want != got {
+				t.Errorf("expected IntervalAsDuration() = %v, got %v", want, got)
 			}
 		})
 	}

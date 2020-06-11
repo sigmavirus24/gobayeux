@@ -142,7 +142,7 @@ func TestIncomingUpdatesReplayIDStore(t *testing.T) {
 		{
 			name: "replay id is not a 'Number'",
 			data: `{"event": {"replayId": "abc", "body": "data"}}`,
-			want: 2,
+			want: 1,
 		},
 		{
 			name: "missing event in data",

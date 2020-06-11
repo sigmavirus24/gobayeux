@@ -29,6 +29,13 @@ func TestProcessEvent(t *testing.T) {
 			connecting,
 		},
 		{
+			"connected state machine gets handshake request sent event",
+			connected,
+			handshakeSent,
+			true,
+			connected,
+		},
+		{
 			"unconnected state machine gets successful connect response",
 			unconnected,
 			successfullyConnected,
@@ -103,6 +110,8 @@ func TestProcessEvent(t *testing.T) {
 	for _, testCase := range testCases {
 		tc := testCase
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			startingState := tc.startingState
 			csm := &ConnectionStateMachine{&startingState}
 			err := csm.ProcessEvent(tc.event)
@@ -117,6 +126,42 @@ func TestProcessEvent(t *testing.T) {
 			}
 			if tc.endingState != *csm.currentState {
 				t.Errorf("unexpected ending state: want %d, got %d", tc.endingState, *csm.currentState)
+			}
+		})
+	}
+}
+
+func TestCurrentState(t *testing.T) {
+	testCases := []struct {
+		name  string
+		state int32
+		want  StateRepresentation
+	}{
+		{
+			name:  "connecting",
+			state: connecting,
+			want:  connectingRepr,
+		},
+		{
+			name:  "connected",
+			state: connected,
+			want:  connectedRepr,
+		},
+		{
+			name:  "unconnected",
+			state: unconnected,
+			want:  unconnectedRepr,
+		},
+	}
+
+	for _, testCase := range testCases {
+		tc := testCase
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			csm := &ConnectionStateMachine{&tc.state}
+			if got := csm.CurrentState(); got != tc.want {
+				t.Errorf("expected CurrentState() == %s, got %s", tc.want, got)
 			}
 		})
 	}
