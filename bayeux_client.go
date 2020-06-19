@@ -84,8 +84,8 @@ func (b *BayeuxClient) Handshake(ctx context.Context) ([]Message, error) {
 	}
 
 	message := response[0]
-	if !message.Successful || !message.AuthSuccessful {
-		return response, errors.New("handshake was not successful")
+	if !message.Successful {
+		return response, fmt.Errorf("handshake was not successful: %s", message.Error)
 	}
 	if message.Channel != MetaHandshake {
 		return response, errors.New("handshake responses must come back via the /meta/handshake channel")
@@ -248,11 +248,12 @@ func (b *BayeuxClient) request(ctx context.Context, ms []Message) (*http.Respons
 		}
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "POST", "https://httpbin.org/post", &buf)
+	req, err := http.NewRequestWithContext(ctx, "POST", b.serverAddress.String(), &buf)
 	if err != nil {
 		return nil, err
 	}
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
 
 	for _, cookie := range b.client.Jar.Cookies(b.serverAddress) {
 		req.AddCookie(cookie)
@@ -269,6 +270,12 @@ func (b *BayeuxClient) request(ctx context.Context, ms []Message) (*http.Respons
 
 func (b *BayeuxClient) parseResponse(response *http.Response) ([]Message, error) {
 	messages := make([]Message, 0)
+	defer response.Body.Close()
+
+	if response.StatusCode != 200 {
+		return nil, fmt.Errorf("expected 200 response from bayeux server, got %d with status '%s'", response.StatusCode, response.Status)
+	}
+
 	if err := json.NewDecoder(response.Body).Decode(&messages); err != nil {
 		return nil, err
 	}

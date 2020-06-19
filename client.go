@@ -15,6 +15,7 @@ type Client struct {
 	connectMessageChannel     chan []Message
 	connectRequestChannel     chan struct{}
 	handshakeRequestChannel   chan struct{}
+	shutdown                  chan struct{}
 }
 
 // NewClient creates a new high-level client
@@ -31,7 +32,8 @@ func NewClient(serverAddress string) (*Client, error) {
 		unsubscribeRequestChannel: make(chan Channel, 10),
 		connectRequestChannel:     make(chan struct{}, 1),
 		connectMessageChannel:     make(chan []Message, 5),
-		handshakeRequestChannel:   make(chan struct{}, 1),
+		handshakeRequestChannel:   make(chan struct{}),
+		shutdown:                  make(chan struct{}),
 	}, nil
 }
 
@@ -45,6 +47,32 @@ func (c *Client) Start(ctx context.Context) <-chan error {
 	errors := make(chan error)
 	go c.start(ctx, errors)
 	return errors
+}
+
+// Disconnect issues a /meta/disconnect request to the Bayeux server and then
+// cleans up channels and our timer.
+func (c *Client) Disconnect(ctx context.Context) error {
+	_, err := c.client.Disconnect(ctx)
+	close(c.subscribeRequestChannel)
+	close(c.unsubscribeRequestChannel)
+	close(c.connectRequestChannel)
+	close(c.connectMessageChannel)
+	close(c.handshakeRequestChannel)
+	c.timer.Stop()
+	return err
+}
+
+// Publish is not yet implemented. When implemented, it will - in a separate thread
+// from the polling task - publish messages to the Bayeux Server.
+// See also
+// https://docs.cometd.org/current/reference/#_two_connection_operation
+func (c *Client) Publish(ctx context.Context, messages []Message) error {
+	// TODO:
+	// * Locking mechanism to ensure only one outstanding Publish request at a
+	//   time
+	// * Ensure that this separate from Start()/poll()
+	// * Implement Publish() in *BayeuxClient
+	panic("Publish() is not yet implemented")
 }
 
 func (c *Client) start(ctx context.Context, errors chan error) {
@@ -85,12 +113,17 @@ func (c *Client) poll(ctx context.Context) error {
 _poll_loop:
 	for {
 		select {
-		case <-ctx.Done():
+		case <-c.shutdown: // When the user calls the Disconnect() method
+			break _poll_loop
+		case <-ctx.Done(): // When the user cancel's the Start() context
 			if err := ctx.Err(); err != nil {
 				return err
 			}
 			break _poll_loop
 		case subReq := <-c.subscribeRequestChannel:
+			// Let's attempt to drain the channel before sending a
+			// /meta/unsubscribe request to more efficiently use HTTP
+			// requests
 			subReqs, channels := c.getSubscriptionRequests()
 			subReqs = append(subReqs, subReq)
 			channels = append(channels, subReq.subscription)
