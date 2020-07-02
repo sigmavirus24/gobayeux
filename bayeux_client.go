@@ -13,6 +13,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/sirupsen/logrus"
 	"golang.org/x/net/publicsuffix"
 )
 
@@ -23,10 +24,11 @@ type BayeuxClient struct {
 	serverAddress *url.URL
 	state         *clientState
 	exts          []MessageExtender
+	logger        logrus.FieldLogger
 }
 
 // NewBayeuxClient initializes a BayeuxClient for the user
-func NewBayeuxClient(transport *http.Transport, serverAddress string) (*BayeuxClient, error) {
+func NewBayeuxClient(transport *http.Transport, serverAddress string, logger logrus.FieldLogger) (*BayeuxClient, error) {
 	if transport == nil {
 		transport = &http.Transport{
 			Dial:                  (&net.Dialer{Timeout: 5 * time.Second, KeepAlive: 30 * time.Second}).Dial,
@@ -45,18 +47,26 @@ func NewBayeuxClient(transport *http.Transport, serverAddress string) (*BayeuxCl
 		return nil, err
 	}
 
+	if logger == nil {
+		logger = logrus.New()
+	}
+
 	return &BayeuxClient{
 		stateMachine:  NewConnectionStateMachine(),
 		client:        &http.Client{Transport: transport, Jar: jar},
 		serverAddress: parsedAddress,
 		state:         &clientState{},
-		//subscriptionsChannel: make(chan subscriptionRequest, 10),
+		logger:        logger,
 	}, nil
 }
 
 // Handshake sends the handshake request to the Bayeux Server
 func (b *BayeuxClient) Handshake(ctx context.Context) ([]Message, error) {
+	logger := b.logger.WithField("at", "handshake")
+	start := time.Now()
+	logger.Debug("starting")
 	if err := b.stateMachine.ProcessEvent(handshakeSent); err != nil {
+		logger.WithError(err).Debug("invalid action for current state")
 		return nil, err
 	}
 	builder := NewHandshakeRequestBuilder()
@@ -72,11 +82,13 @@ func (b *BayeuxClient) Handshake(ctx context.Context) ([]Message, error) {
 	}
 	resp, err := b.request(ctx, ms)
 	if err != nil {
+		logger.WithError(err).Debug("error during request")
 		return nil, err
 	}
 
 	response, err := b.parseResponse(resp)
 	if err != nil {
+		logger.WithError(err).Debug("error parsing response")
 		return response, err
 	}
 	if len(response) > 1 {
@@ -92,6 +104,7 @@ func (b *BayeuxClient) Handshake(ctx context.Context) ([]Message, error) {
 	}
 	b.state.SetClientID(message.ClientID)
 	_ = b.stateMachine.ProcessEvent(successfullyConnected)
+	logger.WithField("duration", time.Since(start)).Debug("finishing")
 	return response, nil
 }
 
@@ -99,6 +112,9 @@ func (b *BayeuxClient) Handshake(ctx context.Context) ([]Message, error) {
 // says that clients MUST maintain only one outstanding connect request. See
 // https://docs.cometd.org/current/reference/#_bayeux_meta_connect
 func (b *BayeuxClient) Connect(ctx context.Context) ([]Message, error) {
+	logger := b.logger.WithField("at", "connect")
+	start := time.Now()
+	logger.Debug("starting")
 	clientID := b.state.GetClientID()
 	if !b.stateMachine.IsConnected() || clientID == "" {
 		return nil, errors.New("client not connected to server")
@@ -113,11 +129,13 @@ func (b *BayeuxClient) Connect(ctx context.Context) ([]Message, error) {
 
 	resp, err := b.request(ctx, ms)
 	if err != nil {
+		logger.WithError(err).Debug("error during request")
 		return nil, err
 	}
 
 	response, err := b.parseResponse(resp)
 	if err != nil {
+		logger.WithError(err).Debug("error parsing response")
 		return response, err
 	}
 
@@ -125,14 +143,19 @@ func (b *BayeuxClient) Connect(ctx context.Context) ([]Message, error) {
 		return response, errors.New("connect request was not successful")
 	}
 
+	logger.WithField("duration", time.Since(start)).Debug("finishing")
 	return response, nil
 }
 
 // Subscribe issues a MetaSubscribe request to the server to subscribe to the
 // channels in the subscriptions slice
 func (b *BayeuxClient) Subscribe(ctx context.Context, subscriptions []Channel) ([]Message, error) {
+	logger := b.logger.WithField("at", "subscribe")
+	start := time.Now()
+	logger.Debug("starting")
 	clientID := b.state.GetClientID()
 	if !b.stateMachine.IsConnected() || clientID == "" {
+		logger.Debug("cannot subscribe because client is not connected")
 		return nil, errors.New("client not connected to server")
 	}
 
@@ -163,6 +186,7 @@ func (b *BayeuxClient) Subscribe(ctx context.Context, subscriptions []Channel) (
 	if !message.Successful {
 		return response, fmt.Errorf("unable to subscribe to channels: %s", message.Error)
 	}
+	logger.WithField("duration", time.Since(start)).Debug("finishing")
 	return response, nil
 }
 

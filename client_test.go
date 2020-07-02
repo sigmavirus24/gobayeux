@@ -15,7 +15,7 @@ func TestNewClient(t *testing.T) {
 	for _, testCase := range testCases {
 		tc := testCase
 		t.Run(tc.name, func(t *testing.T) {
-			_, err := NewClient(tc.serverAddress)
+			_, err := NewClient(tc.serverAddress, nil)
 			if err != nil && !tc.shouldErr {
 				t.Errorf("expected NewClient() to not return an err but it did, %q", err)
 			} else if tc.shouldErr && err == nil {
@@ -23,4 +23,12 @@ func TestNewClient(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestSubscribe(t *testing.T) {
+	client, err := NewClient("https://example.com", nil)
+	if err != nil {
+		t.Fatalf("expected a working client but got an err %q", err)
+	}
+	client.Subscribe("/foo/bar", nil)
 }
