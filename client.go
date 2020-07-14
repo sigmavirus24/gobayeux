@@ -250,7 +250,7 @@ func (c *Client) enqueueConnectRequest() {
 	case c.connectRequestChannel <- struct{}{}:
 		logger.Debug("queued next /meta/connect request")
 	default:
-		logger.Debug("/meta/connect requeust queue full")
+		logger.Debug("/meta/connect request queue full")
 	}
 }
 
