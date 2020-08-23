@@ -5,7 +5,8 @@ import "strings"
 // Channel represents a Bayeux Channel which is defined as "a string that
 // looks like a URL path such as `/foo/bar`, `/meta/connect`, or
 // `/service/chat`."
-// See also https://docs.cometd.org/current/reference/#_concepts_channels
+//
+// See also: https://docs.cometd.org/current/reference/#_concepts_channels
 type Channel string
 
 const (
@@ -61,7 +62,8 @@ func (c Channel) Type() ChannelType {
 }
 
 // HasWildcard indicates whether the Channel ends with * or **
-// See also https://docs.cometd.org/current/reference/#_concepts_channels_wild
+//
+// See also: https://docs.cometd.org/current/reference/#_concepts_channels_wild
 func (c Channel) HasWildcard() bool {
 	s := string(c)
 	return strings.HasSuffix(s, "*")
@@ -83,14 +85,16 @@ func (c Channel) IsValid() bool {
 
 // Match checks if a given Channel matches this Channel.
 // Note wildcards are only valid after the last /.
-// See also https://docs.cometd.org/current/reference/#_concepts_channels_wild
+//
+// See also: https://docs.cometd.org/current/reference/#_concepts_channels_wild
 func (c Channel) Match(other Channel) bool {
 	return c.MatchString(string(other))
 }
 
 // MatchString checks if a given string matches this Channel.
 // Note wildcards are only valid after the last /.
-// See also https://docs.cometd.org/current/reference/#_concepts_channels_wild
+//
+// See also: https://docs.cometd.org/current/reference/#_concepts_channels_wild
 func (c Channel) MatchString(other string) bool {
 	if c.HasWildcard() {
 		return c.matchAgainstWildcards(other)

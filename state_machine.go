@@ -32,7 +32,8 @@ const (
 )
 
 // ConnectionStateMachine handles managing the connection's state
-// See also https://docs.cometd.org/current/reference/#_client_state_table
+//
+// See also: https://docs.cometd.org/current/reference/#_client_state_table
 type ConnectionStateMachine struct {
 	currentState *int32
 }

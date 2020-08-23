@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"net"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
@@ -28,21 +27,22 @@ type BayeuxClient struct {
 }
 
 // NewBayeuxClient initializes a BayeuxClient for the user
-func NewBayeuxClient(transport *http.Transport, serverAddress string, logger logrus.FieldLogger) (*BayeuxClient, error) {
-	if transport == nil {
-		transport = &http.Transport{
-			Dial:                  (&net.Dialer{Timeout: 5 * time.Second, KeepAlive: 30 * time.Second}).Dial,
-			TLSHandshakeTimeout:   5 * time.Second,
-			ResponseHeaderTimeout: 5 * time.Second,
+func NewBayeuxClient(client *http.Client, transport http.RoundTripper, serverAddress string, logger logrus.FieldLogger) (*BayeuxClient, error) {
+	if client == nil {
+		client = http.DefaultClient
+
+		jar, err := cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
+		if err != nil {
+			return nil, err
 		}
+		client.Jar = jar
 	}
+	if transport == nil {
+		transport = http.DefaultTransport
+	}
+	client.Transport = transport
 
 	parsedAddress, err := url.Parse(serverAddress)
-	if err != nil {
-		return nil, err
-	}
-
-	jar, err := cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
 	if err != nil {
 		return nil, err
 	}
@@ -53,7 +53,7 @@ func NewBayeuxClient(transport *http.Transport, serverAddress string, logger log
 
 	return &BayeuxClient{
 		stateMachine:  NewConnectionStateMachine(),
-		client:        &http.Client{Transport: transport, Jar: jar},
+		client:        client,
 		serverAddress: parsedAddress,
 		state:         &clientState{},
 		logger:        logger,
@@ -95,12 +95,17 @@ func (b *BayeuxClient) Handshake(ctx context.Context) ([]Message, error) {
 		return response, errors.New("more messages than expected in handshake response")
 	}
 
-	message := response[0]
+	var message Message
+	for _, m := range response {
+		if m.Channel == MetaHandshake {
+			message = m
+		}
+	}
+	if message.Channel == emptyChannel {
+		return response, errors.New("handshake responses must come back via the /meta/handshake channel")
+	}
 	if !message.Successful {
 		return response, fmt.Errorf("handshake was not successful: %s", message.Error)
-	}
-	if message.Channel != MetaHandshake {
-		return response, errors.New("handshake responses must come back via the /meta/handshake channel")
 	}
 	b.state.SetClientID(message.ClientID)
 	_ = b.stateMachine.ProcessEvent(successfullyConnected)
@@ -139,10 +144,11 @@ func (b *BayeuxClient) Connect(ctx context.Context) ([]Message, error) {
 		return response, err
 	}
 
-	if !response[0].Successful {
-		return response, errors.New("connect request was not successful")
+	for _, m := range response {
+		if m.Channel == MetaConnect && !m.Successful {
+			return response, errors.New("connect request was not successful")
+		}
 	}
-
 	logger.WithField("duration", time.Since(start)).Debug("finishing")
 	return response, nil
 }
@@ -182,9 +188,10 @@ func (b *BayeuxClient) Subscribe(ctx context.Context, subscriptions []Channel) (
 		return response, err
 	}
 
-	message := response[0]
-	if !message.Successful {
-		return response, fmt.Errorf("unable to subscribe to channels: %s", message.Error)
+	for _, m := range response {
+		if m.Channel == MetaSubscribe && !m.Successful {
+			return response, fmt.Errorf("unable to subscribe to channels: %s", m.Error)
+		}
 	}
 	logger.WithField("duration", time.Since(start)).Debug("finishing")
 	return response, nil
@@ -221,9 +228,10 @@ func (b *BayeuxClient) Unsubscribe(ctx context.Context, subscriptions []Channel)
 		return response, err
 	}
 
-	message := response[0]
-	if !message.Successful {
-		return response, fmt.Errorf("unable to unsubscribe from channels: %s", message.Error)
+	for _, m := range response {
+		if m.Channel == MetaUnsubscribe && !m.Successful {
+			return response, fmt.Errorf("unable to unsubscribe from channels: %s", m.Error)
+		}
 	}
 	return response, nil
 }
@@ -253,9 +261,10 @@ func (b *BayeuxClient) Disconnect(ctx context.Context) ([]Message, error) {
 		return response, err
 	}
 
-	message := response[0]
-	if !message.Successful {
-		return response, errors.New("unable to disconnect from Bayeux server")
+	for _, m := range response {
+		if m.Channel == MetaDisconnect && !m.Successful {
+			return response, errors.New("unable to disconnect from Bayeux server")
+		}
 	}
 	return response, nil
 }
@@ -279,28 +288,22 @@ func (b *BayeuxClient) request(ctx context.Context, ms []Message) (*http.Respons
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
 
-	for _, cookie := range b.client.Jar.Cookies(b.serverAddress) {
-		req.AddCookie(cookie)
-	}
-
-	resp, err := b.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-
-	b.client.Jar.SetCookies(b.serverAddress, resp.Cookies())
-	return resp, nil
+	return b.client.Do(req)
 }
 
-func (b *BayeuxClient) parseResponse(response *http.Response) ([]Message, error) {
+func (b *BayeuxClient) parseResponse(resp *http.Response) ([]Message, error) {
 	messages := make([]Message, 0)
-	defer response.Body.Close()
+	defer resp.Body.Close()
 
-	if response.StatusCode != 200 {
-		return nil, fmt.Errorf("expected 200 response from bayeux server, got %d with status '%s'", response.StatusCode, response.Status)
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf(
+			"expected 200 response from bayeux server, got %d with status '%s'",
+			resp.StatusCode,
+			resp.Status,
+		)
 	}
 
-	if err := json.NewDecoder(response.Body).Decode(&messages); err != nil {
+	if err := json.NewDecoder(resp.Body).Decode(&messages); err != nil {
 		return nil, err
 	}
 	for _, ext := range b.exts {

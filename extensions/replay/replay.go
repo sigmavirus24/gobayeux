@@ -5,7 +5,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	bayeux "github.com/sigmavirus24/gobayeux"
+	bayeux "github.com/L11R/gobayeux"
 )
 
 const (
@@ -22,12 +22,12 @@ const (
 // Message Extension and manages the state
 type Extension struct {
 	supportedByServer *int32
-	replayStore       IDStorer
+	replayStore       IDStore
 }
 
-// IDStorer stores and manages the channels and replay IDs for a bayeux
+// IDStore stores and manages the channels and replay IDs for a bayeux
 // server that supports the replay extension
-type IDStorer interface {
+type IDStore interface {
 	Set(channel string, replayID int)
 	Get(channel string) (int, bool)
 	Delete(channel string)
@@ -93,7 +93,13 @@ func (e *Extension) Unregistered() {
 
 func (e *Extension) updateReplayID(ms *bayeux.Message) {
 	data := make(map[string]interface{})
-	if err := json.Unmarshal([]byte(ms.Data.Data), &data); err != nil {
+
+	var md *bayeux.MessageData
+	if err := json.Unmarshal(ms.Data, &md); err != nil {
+		return
+	}
+
+	if err := json.Unmarshal([]byte(md.Data), &data); err != nil {
 		return
 	}
 	event, ok := data[eventKey]
@@ -120,7 +126,7 @@ func (e *Extension) isSupported() bool {
 	return atomic.LoadInt32(e.supportedByServer) == supported
 }
 
-// MapStorage implements the IDStorer interface over a regular map with a
+// MapStorage implements the IDStore interface over a regular map with a
 // RWMutex protecting the access
 type MapStorage struct {
 	store map[string]int
@@ -132,14 +138,14 @@ func NewMapStorage() *MapStorage {
 	return &MapStorage{store: make(map[string]int)}
 }
 
-// Set implements the IDStorer interface
+// Set implements the IDStore interface
 func (s *MapStorage) Set(channel string, replayID int) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 	s.store[channel] = replayID
 }
 
-// Get implements the IDStorer interface
+// Get implements the IDStore interface
 func (s *MapStorage) Get(channel string) (replayID int, ok bool) {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
@@ -148,14 +154,14 @@ func (s *MapStorage) Get(channel string) (replayID int, ok bool) {
 	return
 }
 
-// Delete implements the IDStorer interface
+// Delete implements the IDStore interface
 func (s *MapStorage) Delete(channel string) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 	delete(s.store, channel)
 }
 
-// AsMap implements the IDStorer interface
+// AsMap implements the IDStore interface
 func (s *MapStorage) AsMap() map[string]int {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
