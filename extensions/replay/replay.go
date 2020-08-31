@@ -5,7 +5,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	bayeux "github.com/L11R/gobayeux"
+	bayeux "github.com/sigmavirus24/gobayeux"
 )
 
 const (

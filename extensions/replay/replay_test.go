@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	bayeux "github.com/L11R/gobayeux"
+	bayeux "github.com/sigmavirus24/gobayeux"
 )
 
 func TestNewInitializesOurState(t *testing.T) {
