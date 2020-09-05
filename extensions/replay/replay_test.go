@@ -172,7 +172,7 @@ func TestIncomingUpdatesReplayIDStore(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			md := &bayeux.MessageData{Data: tc.data}
+			md := &MessageData{Data: tc.data}
 			b, _ := json.Marshal(md)
 
 			e := New()
