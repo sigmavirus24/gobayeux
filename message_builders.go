@@ -9,7 +9,8 @@ import (
 
 // HandshakeRequestBuilder provides a way to safely and confidently create
 // handshake requests to /meta/handshake.
-// See also https://docs.cometd.org/current/reference/#_handshake_request
+//
+// See also: https://docs.cometd.org/current/reference/#_handshake_request
 type HandshakeRequestBuilder struct {
 	// Required fields
 	version                  string
@@ -105,8 +106,9 @@ type ConnectRequestBuilder struct {
 }
 
 // NewConnectRequestBuilder initializes a ConnectRequestBuilder as an easy way
-// to build a Message that can be sent as a /meta/connect request. See also
-// https://docs.cometd.org/current/reference/#_connect_request
+// to build a Message that can be sent as a /meta/connect request.
+//
+// See also: https://docs.cometd.org/current/reference/#_connect_request
 func NewConnectRequestBuilder() *ConnectRequestBuilder {
 	return &ConnectRequestBuilder{}
 }

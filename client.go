@@ -2,6 +2,7 @@ package gobayeux
 
 import (
 	"context"
+	"net/http"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -20,16 +21,57 @@ type Client struct {
 	shutdown                  chan struct{}
 }
 
+type Options struct {
+	Logger    logrus.FieldLogger
+	Client    *http.Client
+	Transport http.RoundTripper
+}
+
+type Option func(*Options)
+
+// WithLogger returns an Option with logger.
+func WithLogger(logger logrus.FieldLogger) Option {
+	return func(options *Options) {
+		options.Logger = logger
+	}
+}
+
+// WithLogger returns an Option with custom http.Client.
+func WithHTTPClient(client *http.Client) Option {
+	return func(options *Options) {
+		options.Client = client
+	}
+}
+
+// WithLogger returns an Option with custom http.RoundTripper.
+func WithHTTPTransport(transport http.RoundTripper) Option {
+	return func(options *Options) {
+		options.Transport = transport
+	}
+}
+
 // NewClient creates a new high-level client
-func NewClient(serverAddress string, logger logrus.FieldLogger) (*Client, error) {
-	bc, err := NewBayeuxClient(nil, serverAddress, logger)
+func NewClient(serverAddress string, opts ...Option) (*Client, error) {
+	options := &Options{}
+
+	// Apply passed opts
+	for _, opt := range opts {
+		if opt != nil {
+			opt(options)
+		}
+	}
+
+	if options.Logger == nil {
+		l := logrus.New()
+		l.SetLevel(logrus.PanicLevel)
+		options.Logger = l
+	}
+
+	bc, err := NewBayeuxClient(options.Client, options.Transport, serverAddress, options.Logger)
 	if err != nil {
 		return nil, err
 	}
-	if logger == nil {
-		logger := logrus.New()
-		logger.SetLevel(logrus.PanicLevel)
-	}
+
 	return &Client{
 		client:                    bc,
 		subscriptions:             newSubscriptionsMap(),
@@ -39,7 +81,7 @@ func NewClient(serverAddress string, logger logrus.FieldLogger) (*Client, error)
 		connectMessageChannel:     make(chan []Message, 5),
 		handshakeRequestChannel:   make(chan struct{}),
 		shutdown:                  make(chan struct{}),
-		logger:                    logger,
+		logger:                    options.Logger,
 	}, nil
 }
 
@@ -69,8 +111,8 @@ func (c *Client) Disconnect(ctx context.Context) error {
 
 // Publish is not yet implemented. When implemented, it will - in a separate thread
 // from the polling task - publish messages to the Bayeux Server.
-// See also
-// https://docs.cometd.org/current/reference/#_two_connection_operation
+//
+// See also: https://docs.cometd.org/current/reference/#_two_connection_operation
 func (c *Client) Publish(ctx context.Context, messages []Message) error {
 	// TODO:
 	// * Locking mechanism to ensure only one outstanding Publish request at a
@@ -129,7 +171,7 @@ _poll_loop:
 		case <-c.shutdown: // When the user calls the Disconnect() method
 			logger.Debug("shutting down due to Disconnect()")
 			break _poll_loop
-		case <-ctx.Done(): // When the user cancel's the Start() context
+		case <-ctx.Done(): // When the user cancels the Start() context
 			if err := ctx.Err(); err != nil {
 				logger.WithError(err).Debug("shutting down due to error")
 				return err

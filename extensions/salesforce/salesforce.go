@@ -13,12 +13,12 @@ type StaticTokenAuthenticator struct {
 	// example). You can also retrieve this by using the curl command on
 	// https://developer.salesforce.com/docs/atlas.en-us.api_iot.meta/api_iot/qs_auth_access_token.htm
 	Token string
-	// Transport is any http transport that satisifes the http.RoundTripper
+	// Transport is any http transport that satisfies the http.RoundTripper
 	// interface
 	Transport http.RoundTripper
 }
 
-// RoundTrip implemnets the RoundTripper interface
+// RoundTrip implements the RoundTripper interface
 func (t *StaticTokenAuthenticator) RoundTrip(request *http.Request) (*http.Response, error) {
 	if !strings.HasSuffix(request.URL.Hostname(), "salesforce.com") {
 		return t.Transport.RoundTrip(request)

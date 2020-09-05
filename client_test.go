@@ -15,7 +15,7 @@ func TestNewClient(t *testing.T) {
 	for _, testCase := range testCases {
 		tc := testCase
 		t.Run(tc.name, func(t *testing.T) {
-			_, err := NewClient(tc.serverAddress, nil)
+			_, err := NewClient(tc.serverAddress)
 			if err != nil && !tc.shouldErr {
 				t.Errorf("expected NewClient() to not return an err but it did, %q", err)
 			} else if tc.shouldErr && err == nil {

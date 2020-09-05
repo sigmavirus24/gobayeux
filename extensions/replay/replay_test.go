@@ -1,6 +1,7 @@
 package replay
 
 import (
+	"encoding/json"
 	"testing"
 
 	bayeux "github.com/sigmavirus24/gobayeux"
@@ -171,11 +172,14 @@ func TestIncomingUpdatesReplayIDStore(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
+			md := &bayeux.MessageData{Data: tc.data}
+			b, _ := json.Marshal(md)
+
 			e := New()
 			e.replayStore = &MapStorage{store: map[string]int{"/foo/bar": 1}}
 			m := bayeux.Message{
 				Channel: "/foo/bar",
-				Data:    &bayeux.MessageData{Data: tc.data},
+				Data:    b,
 			}
 			e.Incoming(&m)
 			got, ok := e.replayStore.Get("/foo/bar")

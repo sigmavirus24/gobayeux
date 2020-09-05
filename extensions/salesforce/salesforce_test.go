@@ -48,7 +48,7 @@ type TestRoundTripper struct {
 	ExpectedToken string
 }
 
-// RoundTrip immplements the RoundTripper interface
+// RoundTrip implements the RoundTripper interface
 func (t *TestRoundTripper) RoundTrip(request *http.Request) (*http.Response, error) {
 	if request.Header.Get("Authorization") == "Bearer "+t.ExpectedToken {
 		t.CallCount++
