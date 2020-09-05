@@ -202,19 +202,6 @@ func (a Advice) IntervalAsDuration() time.Duration {
 	return time.Duration(a.Interval) * time.Millisecond
 }
 
-// MessageData represents the JSON object which contains the binary
-// representation of the data in a Bayeux Message.
-//
-// See also: https://docs.cometd.org/current/reference/#_concepts_binary_data
-type MessageData struct {
-	// Data is the actual binary representation of the data
-	Data string `json:"data,omitempty"`
-	// Last tells whether the `data` field is the last chunk of binary data
-	Last bool `json:"last,omitempty"`
-	// Meta is an optional field that caries related additional metadata
-	Meta map[string]string `json:"meta,omitempty"`
-}
-
 // MessageError represents a parsed Error field of a Message
 //
 // See also: https://docs.cometd.org/current/reference/#_error

@@ -94,7 +94,7 @@ func (e *Extension) Unregistered() {
 func (e *Extension) updateReplayID(ms *bayeux.Message) {
 	data := make(map[string]interface{})
 
-	var md *bayeux.MessageData
+	var md *MessageData
 	if err := json.Unmarshal(ms.Data, &md); err != nil {
 		return
 	}
@@ -124,6 +124,19 @@ func (e *Extension) updateReplayID(ms *bayeux.Message) {
 
 func (e *Extension) isSupported() bool {
 	return atomic.LoadInt32(e.supportedByServer) == supported
+}
+
+// MessageData represents the JSON object which contains the binary
+// representation of the data in a Bayeux Message.
+//
+// See also: https://docs.cometd.org/current/reference/#_concepts_binary_data
+type MessageData struct {
+	// Data is the actual binary representation of the data
+	Data string `json:"data,omitempty"`
+	// Last tells whether the `data` field is the last chunk of binary data
+	Last bool `json:"last,omitempty"`
+	// Meta is an optional field that caries related additional metadata
+	Meta map[string]string `json:"meta,omitempty"`
 }
 
 // MapStorage implements the IDStore interface over a regular map with a
