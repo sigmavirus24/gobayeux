@@ -67,7 +67,7 @@ func ExampleSubscribeRequestBuilder() {
 	}
 	fmt.Println(string(jsonBytes))
 	// Output:
-	// [{"channel":"/meta/subscribe","clientId":"Un1q31d3nt1f13r","subscription":["/foo/**","/bar/foo"]}]
+	// [{"channel":"/meta/subscribe","clientId":"Un1q31d3nt1f13r","subscription":"/foo/**"},{"channel":"/meta/subscribe","clientId":"Un1q31d3nt1f13r","subscription":"/bar/foo"}]
 }
 
 func ExampleUnsubscribeRequestBuilder() {
@@ -92,5 +92,5 @@ func ExampleUnsubscribeRequestBuilder() {
 	}
 	fmt.Println(string(jsonBytes))
 	// Output:
-	// [{"channel":"/meta/unsubscribe","clientId":"Un1q31d3nt1f13r","subscription":["/foo/**","/bar/foo"]}]
+	// [{"channel":"/meta/unsubscribe","clientId":"Un1q31d3nt1f13r","subscription":"/foo/**"},{"channel":"/meta/unsubscribe","clientId":"Un1q31d3nt1f13r","subscription":"/bar/foo"}]
 }
