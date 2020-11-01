@@ -87,7 +87,7 @@ type Message struct {
 	// to/from the `/meta/subscribe` or `/meta/unsubscribe` channels.
 	//
 	// See also: https://docs.cometd.org/current/reference/#_subscription
-	Subscription []Channel `json:"subscription,omitempty"`
+	Subscription Channel `json:"subscription,omitempty"`
 	// Error field is optional in any response and MAY indicate the type of
 	// error that occurred when a request returns with a false successful
 	// message.

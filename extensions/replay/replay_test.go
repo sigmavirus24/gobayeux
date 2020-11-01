@@ -99,7 +99,7 @@ func TestIncomingMetaUnsubscribeRemovesChannel(t *testing.T) {
 	}}
 	m := bayeux.Message{
 		Channel:      bayeux.MetaUnsubscribe,
-		Subscription: []bayeux.Channel{"/"},
+		Subscription: bayeux.Channel("/"),
 	}
 	e.Incoming(&m)
 

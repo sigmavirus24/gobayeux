@@ -198,14 +198,19 @@ func (b *SubscribeRequestBuilder) Build() ([]Message, error) {
 		return nil, errors.New("no subscriptions provided")
 	}
 
-	m := Message{
-		Channel:      MetaSubscribe,
-		ClientID:     b.clientID,
-		Subscription: b.subscription,
+	ms := make([]Message, len(b.subscription))
+
+	for i := range b.subscription {
+		ms[i] = Message{
+			Channel:      MetaSubscribe,
+			ClientID:     b.clientID,
+			Subscription: b.subscription[i],
+		}
 	}
+
 	// TODO Add the ext and id fields once we're able to handle them with the
 	// builder
-	return []Message{m}, nil
+	return ms, nil
 }
 
 // UnsubscribeRequestBuilder provides an easy way to build a /meta/unsubscribe
@@ -254,14 +259,18 @@ func (b *UnsubscribeRequestBuilder) Build() ([]Message, error) {
 		return nil, errors.New("no subscriptions provided")
 	}
 
-	m := Message{
-		Channel:      MetaUnsubscribe,
-		ClientID:     b.clientID,
-		Subscription: b.subscription,
+	ms := make([]Message, len(b.subscription))
+
+	for i := range b.subscription {
+		ms[i] = Message{
+			Channel:      MetaUnsubscribe,
+			ClientID:     b.clientID,
+			Subscription: b.subscription[i],
+		}
 	}
 	// TODO Add the ext and id fields once we're able to handle them with the
 	// builder
-	return []Message{m}, nil
+	return ms, nil
 }
 
 // DisconnectRequestBuilder provides an easy way to build a /meta/disconnect
