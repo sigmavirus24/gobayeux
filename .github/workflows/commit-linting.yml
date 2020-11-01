@@ -1,6 +1,6 @@
 name: Commit linting
 
-on: [push]
+on: [push, pull_request]
 
 jobs:
   build:
@@ -9,6 +9,14 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+      with:
+        # Checkout the entire pull request branch
+        ref: ${{github.event.pull_request.head.ref}}
+        fetch-depth: ${{github.event.pull_request.commits}}
+    - uses: actions/checkout@v2
+      with:
+        ref: main
+        fetch-depth: 1
     - name: Set up Python 3.8
       uses: actions/setup-python@v1
       with:
