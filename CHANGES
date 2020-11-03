@@ -1,0 +1,12 @@
+v2.0.0
+------
+
+- It appears that most clients handle the "subscription" field of a message as
+  a string despite the specification clearly stating it can be an array of
+  strings. As a result, we've changed the definition and how we build
+  subscription messages.
+
+v1.0.0
+------
+
+- Finalize API for client work
