@@ -18,6 +18,7 @@ type config struct {
 	Protocol    string
 	Path        string
 	LogLevel    string
+	AccessToken string
 }
 
 func main() {

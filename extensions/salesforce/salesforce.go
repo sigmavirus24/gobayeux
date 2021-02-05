@@ -16,6 +16,7 @@ type StaticTokenAuthenticator struct {
 	// Transport is any http transport that satisfies the http.RoundTripper
 	// interface
 	Transport http.RoundTripper
+	cookies   []*http.Cookie
 }
 
 // RoundTrip implements the RoundTripper interface
@@ -29,7 +30,16 @@ func (t *StaticTokenAuthenticator) RoundTrip(request *http.Request) (*http.Respo
 
 	newRequest := deepCopyRequestWitHeaders(request)
 	newRequest.Header.Set("Authorization", "Bearer "+t.Token)
-	return t.Transport.RoundTrip(newRequest)
+	for _, cookie := range t.cookies {
+		newRequest.AddCookie(cookie)
+	}
+
+	resp, err := t.Transport.RoundTrip(newRequest)
+	if err != nil {
+		return resp, err
+	}
+	t.cookies = resp.Cookies()
+	return resp, nil
 }
 
 func deepCopyRequestWitHeaders(request *http.Request) *http.Request {

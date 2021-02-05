@@ -287,7 +287,6 @@ func (b *BayeuxClient) request(ctx context.Context, ms []Message) (*http.Respons
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
-
 	return b.client.Do(req)
 }
 
