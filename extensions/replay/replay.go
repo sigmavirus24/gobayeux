@@ -1,3 +1,14 @@
+// Package replay provides an interface and in-memory implementation of the
+// replay ID extension for the Bayeux protocol.
+//
+// This provides an in-memory storage based off a map which is thread-safe.
+// You can initialize it with `NewMapStorage()`. Otherwise, you can implement
+// `IDStore`.
+//
+// Example Usage:
+//
+//    client := gobayeux.NewClient(serverAddress)
+//    client.UseExtension(replay.New(replay.NewMapStorage()))
 package replay
 
 import (
@@ -35,9 +46,9 @@ type IDStore interface {
 }
 
 // New creates a new extension instance
-func New() *Extension {
+func New(store IDStore) *Extension {
 	defaultVal := unsupported
-	return &Extension{supportedByServer: &defaultVal}
+	return &Extension{supportedByServer: &defaultVal, replayStore: store}
 }
 
 // Outgoing attaches any additional metadata to a message

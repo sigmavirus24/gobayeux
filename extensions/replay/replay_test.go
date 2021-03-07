@@ -8,14 +8,14 @@ import (
 )
 
 func TestNewInitializesOurState(t *testing.T) {
-	e := New()
+	e := New(NewMapStorage())
 	if *e.supportedByServer != unsupported {
 		t.Error("extension is initialized incorrectly")
 	}
 }
 
 func TestOutgoingMetaHandshake(t *testing.T) {
-	e := New()
+	e := New(NewMapStorage())
 	e.Registered(ExtensionName, nil)
 	m := bayeux.Message{Channel: bayeux.MetaHandshake}
 	if m.Ext != nil {
@@ -38,7 +38,7 @@ func TestOutgoingMetaHandshake(t *testing.T) {
 
 func TestSupportedOutgoingMetaSubscribe(t *testing.T) {
 	want := 1234
-	e := New()
+	e := New(NewMapStorage())
 	*e.supportedByServer = supported
 	e.Registered(ExtensionName, nil)
 	e.replayStore = &MapStorage{store: map[string]int{"/foo/bar": want}}
@@ -63,7 +63,7 @@ func TestSupportedOutgoingMetaSubscribe(t *testing.T) {
 }
 
 func TestUnsupportedOutgoingMetaSubscribe(t *testing.T) {
-	e := New()
+	e := New(NewMapStorage())
 	e.Registered(ExtensionName, nil)
 	e.replayStore = &MapStorage{store: map[string]int{"/foo/bar": 1}}
 	m := bayeux.Message{Channel: bayeux.MetaSubscribe}
@@ -76,7 +76,7 @@ func TestUnsupportedOutgoingMetaSubscribe(t *testing.T) {
 }
 
 func TestDetectsItIsSupported(t *testing.T) {
-	e := New()
+	e := New(NewMapStorage())
 	e.Registered(ExtensionName, nil)
 	m := bayeux.Message{
 		Channel: bayeux.MetaHandshake,
@@ -91,7 +91,7 @@ func TestDetectsItIsSupported(t *testing.T) {
 }
 
 func TestIncomingMetaUnsubscribeRemovesChannel(t *testing.T) {
-	e := New()
+	e := New(NewMapStorage())
 	e.replayStore = &MapStorage{store: map[string]int{
 		"/foo/bar": 1,
 		"/bar/*":   2,
@@ -123,7 +123,7 @@ func TestIncomingEdges(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			e := New()
+			e := New(NewMapStorage())
 			e.Incoming(&bayeux.Message{Channel: tc.channel})
 		})
 	}
@@ -175,7 +175,7 @@ func TestIncomingUpdatesReplayIDStore(t *testing.T) {
 			md := &MessageData{Data: tc.data}
 			b, _ := json.Marshal(md)
 
-			e := New()
+			e := New(NewMapStorage())
 			e.replayStore = &MapStorage{store: map[string]int{"/foo/bar": 1}}
 			m := bayeux.Message{
 				Channel: "/foo/bar",
@@ -194,14 +194,14 @@ func TestIncomingUpdatesReplayIDStore(t *testing.T) {
 }
 
 func TestRegistered(t *testing.T) {
-	e := New()
+	e := New(NewMapStorage())
 	e.Registered(ExtensionName, nil)
 	// NOTE: These functions do nothing but test stubs are nice for test
 	// coverage
 }
 
 func TestUnregistered(t *testing.T) {
-	e := New()
+	e := New(NewMapStorage())
 	e.Unregistered()
 	// NOTE: These functions do nothing but test stubs are nice for test
 	// coverage

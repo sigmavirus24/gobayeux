@@ -1,3 +1,9 @@
+// Package salesforce provides a simple way of authenticating with
+// Salesforce.com Bayeux-powered services.
+//
+// An example usage looks like:
+//
+//     client := gobayeux.NewClient(serverAddress, gobayeux.WithHTTPTransport(salesforce.StaticTokenAuthenticator{myToken, http.DefaultTransport}))
 package salesforce
 
 import (
