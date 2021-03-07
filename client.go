@@ -122,6 +122,14 @@ func (c *Client) Publish(ctx context.Context, messages []Message) error {
 	panic("Publish() is not yet implemented")
 }
 
+// UseExtension adds the provided MessageExtender as an extension for use with
+// this Client session.
+//
+// See also: https://docs.cometd.org/current/reference/#_bayeux_ext
+func (c *Client) UseExtension(ext MessageExtender) error {
+	return c.client.UseExtension(ext)
+}
+
 func (c *Client) start(ctx context.Context, errors chan error) {
 	logger := c.logger.WithField("at", "start")
 	if _, err := c.client.Handshake(ctx); err != nil {
