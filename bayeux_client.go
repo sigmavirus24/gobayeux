@@ -269,6 +269,18 @@ func (b *BayeuxClient) Disconnect(ctx context.Context) ([]Message, error) {
 	return response, nil
 }
 
+// UseExtension adds the provided MessageExtender to the list of known
+// extensions
+func (b *BayeuxClient) UseExtension(ext MessageExtender) error {
+	for _, registered := range b.exts {
+		if ext == registered {
+			return fmt.Errorf("extension already registered: %s", ext)
+		}
+	}
+	b.exts = append(b.exts, ext)
+	return nil
+}
+
 func (b *BayeuxClient) request(ctx context.Context, ms []Message) (*http.Response, error) {
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(ms); err != nil {
@@ -287,7 +299,6 @@ func (b *BayeuxClient) request(ctx context.Context, ms []Message) (*http.Respons
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
-
 	return b.client.Do(req)
 }
 
