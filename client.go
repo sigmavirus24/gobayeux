@@ -21,12 +21,14 @@ type Client struct {
 	shutdown                  chan struct{}
 }
 
+// Options stores the available configuration options for a Client
 type Options struct {
 	Logger    logrus.FieldLogger
 	Client    *http.Client
 	Transport http.RoundTripper
 }
 
+// Option defines the type passed into NewClient for configuration
 type Option func(*Options)
 
 // WithLogger returns an Option with logger.
@@ -36,14 +38,14 @@ func WithLogger(logger logrus.FieldLogger) Option {
 	}
 }
 
-// WithLogger returns an Option with custom http.Client.
+// WithHTTPClient returns an Option with custom http.Client.
 func WithHTTPClient(client *http.Client) Option {
 	return func(options *Options) {
 		options.Client = client
 	}
 }
 
-// WithLogger returns an Option with custom http.RoundTripper.
+// WithHTTPTransport returns an Option with custom http.RoundTripper.
 func WithHTTPTransport(transport http.RoundTripper) Option {
 	return func(options *Options) {
 		options.Transport = transport
