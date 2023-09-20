@@ -282,15 +282,15 @@ func (b *BayeuxClient) UseExtension(ext MessageExtender) error {
 }
 
 func (b *BayeuxClient) request(ctx context.Context, ms []Message) (*http.Response, error) {
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(ms); err != nil {
-		return nil, err
-	}
-
 	for _, ext := range b.exts {
 		for _, m := range ms {
 			ext.Outgoing(&m)
 		}
+	}
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(ms); err != nil {
+		return nil, err
 	}
 
 	req, err := http.NewRequestWithContext(ctx, "POST", b.serverAddress.String(), &buf)
