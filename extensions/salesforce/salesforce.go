@@ -3,7 +3,7 @@
 //
 // An example usage looks like:
 //
-//     client := gobayeux.NewClient(serverAddress, gobayeux.WithHTTPTransport(salesforce.StaticTokenAuthenticator{myToken, http.DefaultTransport}))
+//	client := gobayeux.NewClient(serverAddress, gobayeux.WithHTTPTransport(salesforce.StaticTokenAuthenticator{myToken, http.DefaultTransport}))
 package salesforce
 
 import (
