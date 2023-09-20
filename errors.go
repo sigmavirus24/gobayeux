@@ -240,6 +240,7 @@ func newBadConnect(current, from, to int32) *ErrBadConnect {
 	}
 }
 
+// ErrUnknownEventType is returned when the next state is unknown
 type ErrUnknownEventType string
 
 func (e ErrUnknownEventType) Error() string {
