@@ -1,7 +1,6 @@
 package gobayeux
 
 import (
-	"errors"
 	"sync/atomic"
 )
 
@@ -14,6 +13,17 @@ const (
 	connecting
 	connected
 )
+
+var stateNames = []string{"unconnected", "connecting", "connected"}
+
+func stateName(state int32) string {
+	s := int(state)
+	if s < 0 || s >= len(stateNames) {
+		return "unknown"
+	}
+
+	return stateNames[s]
+}
 
 const (
 	unconnectedRepr StateRepresentation = "UNCONNECTED"
@@ -70,13 +80,13 @@ func (csm *ConnectionStateMachine) ProcessEvent(e Event) error {
 	switch e {
 	case handshakeSent:
 		if !atomic.CompareAndSwapInt32(csm.currentState, unconnected, connecting) {
-			return errors.New("attempting to handshake but not in unconnected state")
+			return newBadHanshake(*csm.currentState, unconnected, connecting)
 		}
 	case timeout:
 		atomic.SwapInt32(csm.currentState, unconnected)
 	case successfullyConnected:
 		if !atomic.CompareAndSwapInt32(csm.currentState, connecting, connected) {
-			return errors.New("invalid state for successful connect response event")
+			return newBadConnect(*csm.currentState, connecting, connected)
 		}
 	case disconnectSent:
 		currentState := atomic.LoadInt32(csm.currentState)
@@ -84,7 +94,7 @@ func (csm *ConnectionStateMachine) ProcessEvent(e Event) error {
 			atomic.StoreInt32(csm.currentState, unconnected)
 		}
 	default:
-		return errors.New("unknown event type")
+		return ErrUnknownEventType(e)
 	}
 	return nil
 }

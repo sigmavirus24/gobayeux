@@ -2,7 +2,6 @@ package gobayeux
 
 import (
 	"encoding/json"
-	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -115,7 +114,7 @@ func (m *Message) ParseError() (MessageError, error) {
 	// TODO(sigmavirus24) actually parse the error
 	pieces := strings.SplitN(m.Error, ":", 3)
 	if len(pieces) != 3 {
-		return MessageError{}, fmt.Errorf("error message not parseable: %s", m.Error)
+		return MessageError{}, ErrMessageUnparsable(m.Error)
 	}
 	errorCode, err := strconv.Atoi(pieces[0])
 	if err != nil {
