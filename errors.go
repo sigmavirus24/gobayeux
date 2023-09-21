@@ -6,34 +6,34 @@ import (
 
 const (
 	// ErrClientNotConnected is returned when the client is not connected
-	ErrClientNotConnected = sentinal("client not connected to server")
+	ErrClientNotConnected = sentinel("client not connected to server")
 
 	// ErrTooManyMessages is returned when there is more than one handshake message
-	ErrTooManyMessages = sentinal("more messages than expected in handshake response")
+	ErrTooManyMessages = sentinel("more messages than expected in handshake response")
 
 	// ErrBadChannel is returned when the handshake response is on the wrong channel
-	ErrBadChannel = sentinal("handshake responses must come back via the /meta/handshake channel")
+	ErrBadChannel = sentinel("handshake responses must come back via the /meta/handshake channel")
 
 	// ErrFailedToConnect is a general connection error
-	ErrFailedToConnect = sentinal("connect request was not successful")
+	ErrFailedToConnect = sentinel("connect request was not successful")
 
 	// ErrNoSupportedConnectionTypes is returned when the client and server
 	// aren't able to agree on a connection type
-	ErrNoSupportedConnectionTypes = sentinal("no supported connection types provided")
+	ErrNoSupportedConnectionTypes = sentinel("no supported connection types provided")
 
 	// ErrNoVersion is returned when a version is not provided
-	ErrNoVersion = sentinal("no version specified")
+	ErrNoVersion = sentinel("no version specified")
 
 	// ErrMissingClientID is returned when the client id has not been set
-	ErrMissingClientID = sentinal("missing clientID value")
+	ErrMissingClientID = sentinel("missing clientID value")
 
 	// ErrMissingConnectionType is returned when the connection type is unset
-	ErrMissingConnectionType = sentinal("missing connectionType value")
+	ErrMissingConnectionType = sentinel("missing connectionType value")
 )
 
-type sentinal string
+type sentinel string
 
-func (s sentinal) Error() string {
+func (s sentinel) Error() string {
 	return string(s)
 }
 
