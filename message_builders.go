@@ -42,7 +42,7 @@ func (b *HandshakeRequestBuilder) AddSupportedConnectionType(connectionType stri
 		}
 		b.supportedConnectionTypes = append(b.supportedConnectionTypes, connectionType)
 	default:
-		return ErrBadConnectionType{connectionType}
+		return BadConnectionTypeError{connectionType}
 	}
 	return nil
 }
@@ -117,7 +117,7 @@ func (b *ConnectRequestBuilder) AddConnectionType(connectionType string) error {
 	case ConnectionTypeCallbackPolling, ConnectionTypeLongPolling, ConnectionTypeIFrame:
 		b.connectionType = connectionType
 	default:
-		return ErrBadConnectionType{connectionType}
+		return BadConnectionTypeError{connectionType}
 	}
 	return nil
 }
@@ -168,7 +168,7 @@ func (b *SubscribeRequestBuilder) AddClientID(clientID string) {
 // sent in a /meta/subscribe request
 func (b *SubscribeRequestBuilder) AddSubscription(c Channel) error {
 	if !c.IsValid() {
-		return ErrInvalidChannel{c}
+		return InvalidChannelError{c}
 	}
 
 	for _, s := range b.subscription {
@@ -187,7 +187,7 @@ func (b *SubscribeRequestBuilder) Build() ([]Message, error) {
 	}
 
 	if len(b.subscription) < 1 {
-		return nil, ErrEmptySlice("subscriptions")
+		return nil, EmptySliceError("subscriptions")
 	}
 
 	ms := make([]Message, len(b.subscription))
@@ -229,7 +229,7 @@ func (b *UnsubscribeRequestBuilder) AddClientID(clientID string) {
 // sent in a /meta/unsubscribe request
 func (b *UnsubscribeRequestBuilder) AddSubscription(c Channel) error {
 	if !c.IsValid() {
-		return ErrInvalidChannel{c}
+		return InvalidChannelError{c}
 	}
 
 	for _, s := range b.subscription {
@@ -248,7 +248,7 @@ func (b *UnsubscribeRequestBuilder) Build() ([]Message, error) {
 	}
 
 	if len(b.subscription) < 1 {
-		return nil, ErrEmptySlice("subscriptions")
+		return nil, EmptySliceError("subscriptions")
 	}
 
 	ms := make([]Message, len(b.subscription))
@@ -294,12 +294,12 @@ func (b *DisconnectRequestBuilder) Build() ([]Message, error) {
 
 func validateVersion(version string) error {
 	if len(version) < 1 {
-		return ErrBadConnectionVersion{version}
+		return BadConnectionVersionError{version}
 	}
 
 	pieces := strings.SplitN(version, ".", 2)
 	if _, err := strconv.Atoi(pieces[0]); err != nil {
-		return ErrBadConnectionVersion{version}
+		return BadConnectionVersionError{version}
 	}
 
 	return nil

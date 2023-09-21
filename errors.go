@@ -32,120 +32,120 @@ var (
 	ErrMissingConnectionType = errors.New("missing connectionType value")
 )
 
-// ErrConnectionFailed is returned whenever Connect is called and it fails
-type ErrConnectionFailed struct {
-	err error
+// ConnectionFailedError is returned whenever Connect is called and it fails
+type ConnectionFailedError struct {
+	Err error
 }
 
-func (e ErrConnectionFailed) Error() string {
-	return fmt.Sprintf("connection failed (%s)", e.err)
+func (e ConnectionFailedError) Error() string {
+	return fmt.Sprintf("connection failed (%s)", e.Err)
 }
 
-func (e ErrConnectionFailed) Unwrap() error {
-	return e.err
+func (e ConnectionFailedError) Unwrap() error {
+	return e.Err
 }
 
-// ErrHandshakeFailed is returned whenever the handshake fails
-type ErrHandshakeFailed struct {
-	err error
+// HandshakeFailedError is returned whenever the handshake fails
+type HandshakeFailedError struct {
+	Err error
 }
 
-func (e ErrHandshakeFailed) Error() string {
-	return e.err.Error()
+func (e HandshakeFailedError) Error() string {
+	return e.Err.Error()
 }
 
-func (e ErrHandshakeFailed) Unwrap() error {
-	return e.err
+func (e HandshakeFailedError) Unwrap() error {
+	return e.Err
 }
 
-func newHandshakeError(msg string) *ErrHandshakeFailed {
-	return &ErrHandshakeFailed{
+func newHandshakeError(msg string) *HandshakeFailedError {
+	return &HandshakeFailedError{
 		fmt.Errorf("handshake was not successful: %s", msg),
 	}
 }
 
-// ErrSubscriptionFailed is returned for any errors on Subscribe
-type ErrSubscriptionFailed struct {
+// SubscriptionFailedError is returned for any errors on Subscribe
+type SubscriptionFailedError struct {
 	Channels []Channel
-	err      error
+	Err      error
 }
 
-func (e ErrSubscriptionFailed) Error() string {
-	return fmt.Sprintf("subscription failed (%s)", e.err)
+func (e SubscriptionFailedError) Error() string {
+	return fmt.Sprintf("subscription failed (%s)", e.Err)
 }
 
-func (e ErrSubscriptionFailed) Unwrap() error {
-	return e.err
+func (e SubscriptionFailedError) Unwrap() error {
+	return e.Err
 }
 
-// ErrUnsubscribeFailed is returned for any errors on Unsubscribe
-type ErrUnsubscribeFailed struct {
+// UnsubscribeFailedError is returned for any errors on Unsubscribe
+type UnsubscribeFailedError struct {
 	Channels []Channel
-	err      error
+	Err      error
 }
 
-func (e ErrUnsubscribeFailed) Error() string {
-	return fmt.Sprintf("subscription failed (%s)", e.err)
+func (e UnsubscribeFailedError) Error() string {
+	return fmt.Sprintf("subscription failed (%s)", e.Err)
 }
 
-func (e ErrUnsubscribeFailed) Unwrap() error {
-	return e.err
+func (e UnsubscribeFailedError) Unwrap() error {
+	return e.Err
 }
 
-// ErrActionFailed is a general purpose error returned by the BayeuxClient
-type ErrActionFailed struct {
-	action string
-	err    string
+// ActionFailedError is a general purpose error returned by the BayeuxClient
+type ActionFailedError struct {
+	Action       string
+	ErrorMessage string
 }
 
-func (e ErrActionFailed) Error() string {
-	return fmt.Sprintf("unable to %s channels: %s", e.action, e.err)
+func (e ActionFailedError) Error() string {
+	return fmt.Sprintf("unable to %s channels: %s", e.Action, e.ErrorMessage)
 }
 
-func newSubscribeError(msg string) *ErrActionFailed {
-	return &ErrActionFailed{"subscribe to", msg}
+func newSubscribeError(msg string) *ActionFailedError {
+	return &ActionFailedError{"subscribe to", msg}
 }
 
-func newUnsubscribeError(msg string) *ErrActionFailed {
-	return &ErrActionFailed{"unsubscribe from", msg}
+func newUnsubscribeError(msg string) *ActionFailedError {
+	return &ActionFailedError{"unsubscribe from", msg}
 }
 
-// ErrDisconnectFailed is returned when the call to Disconnect fails
-type ErrDisconnectFailed struct {
-	err error
+// DisconnectFailedError is returned when the call to Disconnect fails
+type DisconnectFailedError struct {
+	Err error
 }
 
-func (e ErrDisconnectFailed) Error() string {
+func (e DisconnectFailedError) Error() string {
 	msg := "unable to disconnect from Bayeux server"
 
-	if e.err == nil {
+	if e.Err == nil {
 		return msg
 	}
 
-	return fmt.Sprintf("%s (%s)", msg, e.err)
+	return fmt.Sprintf("%s (%s)", msg, e.Err)
 }
 
-func (e ErrDisconnectFailed) Unwrap() error {
-	return e.err
+func (e DisconnectFailedError) Unwrap() error {
+	return e.Err
 }
 
-// ErrAlreadyRegistered signifies that the given MessageExtender is already
+// AlreadyRegisteredError signifies that the given MessageExtender is already
 // registered with the client
-type ErrAlreadyRegistered struct {
+type AlreadyRegisteredError struct {
 	MessageExtender
 }
 
-func (e ErrAlreadyRegistered) Error() string {
+func (e AlreadyRegisteredError) Error() string {
 	return fmt.Sprintf("extension already registered: %s", e.MessageExtender)
 }
 
-// ErrBadResponse is returned when we get an unexpected HTTP response from the server
-type ErrBadResponse struct {
+// BadResponseError is returned when we get an unexpected HTTP response from the server
+type BadResponseError struct {
 	StatusCode int
 	Status     string
 }
 
-func (e ErrBadResponse) Error() string {
+func (e BadResponseError) Error() string {
 	return fmt.Sprintf(
 		"expected 200 response from bayeux server, got %d with status '%s'",
 		e.StatusCode,
@@ -153,39 +153,39 @@ func (e ErrBadResponse) Error() string {
 	)
 }
 
-// ErrBadConnectionType is returned when we don't know how to handle the
+// BadConnectionTypeError is returned when we don't know how to handle the
 // requested connection type
-type ErrBadConnectionType struct {
+type BadConnectionTypeError struct {
 	ConnectionType string
 }
 
-func (e ErrBadConnectionType) Error() string {
+func (e BadConnectionTypeError) Error() string {
 	return fmt.Sprintf("%q is not a valid connection type", e.ConnectionType)
 }
 
-// ErrBadConnectionVersion is returned when we can't support the requested
+// BadConnectionVersionError is returned when we can't support the requested
 // version number
-type ErrBadConnectionVersion struct {
+type BadConnectionVersionError struct {
 	Version string
 }
 
-func (e ErrBadConnectionVersion) Error() string {
+func (e BadConnectionVersionError) Error() string {
 	return fmt.Sprintf("version %q is invalid for Bayeux protocol", e.Version)
 }
 
-// ErrInvalidChannel is the result of a failure to validate a channel name
-type ErrInvalidChannel struct {
+// InvalidChannelError is the result of a failure to validate a channel name
+type InvalidChannelError struct {
 	Channel
 }
 
-func (e ErrInvalidChannel) Error() string {
+func (e InvalidChannelError) Error() string {
 	return fmt.Sprintf("channel %q appears to not be a valid channel", e.Channel)
 }
 
-// ErrEmptySlice is returned when an empty slice is unexpected
-type ErrEmptySlice string
+// EmptySliceError is returned when an empty slice is unexpected
+type EmptySliceError string
 
-func (e ErrEmptySlice) Error() string {
+func (e EmptySliceError) Error() string {
 	return fmt.Sprintf("no %s provided", string(e))
 }
 
@@ -196,53 +196,55 @@ func (e ErrMessageUnparsable) Error() string {
 	return fmt.Sprintf("error message not parseable: %s", string(e))
 }
 
-// ErrBadState is returned when the state machine transition is not valid
-type ErrBadState struct {
-	CurrenctState int32
-	FromState     int32
-	ToState       int32
-	msg           string
+// BadStateError is returned when the state machine transition is not valid
+type BadStateError struct {
+	CurrentState int32
+	FromState    int32
+	ToState      int32
+	Message      string
 }
 
-func (e ErrBadState) Error() string {
-	return fmt.Sprintf("%s, (current: %s, from: %s, to: %s)", e.msg, stateName(e.CurrenctState), stateName(e.FromState), stateName(e.ToState))
+func (e BadStateError) Error() string {
+	return fmt.Sprintf("%s, (current: %s, from: %s, to: %s)", e.Message, stateName(e.CurrentState), stateName(e.FromState), stateName(e.ToState))
 }
 
-// ErrBadHandshake is returned when trying to handshake but not unconnected
-type ErrBadHandshake struct {
-	*ErrBadState
+// BadHandshakeError is returned when trying to handshake but not unconnected
+type BadHandshakeError struct {
+	*BadStateError
 }
 
-func newBadHanshake(current, from, to int32) *ErrBadHandshake {
-	return &ErrBadHandshake{
-		&ErrBadState{
-			msg:           "attempting to handshake but not in unconnected state",
-			CurrenctState: current,
-			FromState:     from,
-			ToState:       to,
+func newBadHanshake(current, from, to int32) *BadHandshakeError {
+	return &BadHandshakeError{
+		&BadStateError{
+			Message:      "attempting to handshake but not in unconnected state",
+			CurrentState: current,
+			FromState:    from,
+			ToState:      to,
 		},
 	}
 }
 
-// ErrBadConnect is returned when trying to connected but not connecting
-type ErrBadConnect struct {
-	*ErrBadState
+// BadConnectionError is returned when trying to connected but not connecting
+type BadConnectionError struct {
+	*BadStateError
 }
 
-func newBadConnect(current, from, to int32) *ErrBadConnect {
-	return &ErrBadConnect{
-		&ErrBadState{
-			msg:           "invalid state for successful connect response event",
-			CurrenctState: current,
-			FromState:     from,
-			ToState:       to,
+func newBadConnection(current, from, to int32) *BadConnectionError {
+	return &BadConnectionError{
+		&BadStateError{
+			Message:      "invalid state for successful connect response event",
+			CurrentState: current,
+			FromState:    from,
+			ToState:      to,
 		},
 	}
 }
 
-// ErrUnknownEventType is returned when the next state is unknown
-type ErrUnknownEventType string
+// UnknownEventTypeError is returned when the next state is unknown
+type UnknownEventTypeError struct {
+	Event
+}
 
-func (e ErrUnknownEventType) Error() string {
-	return fmt.Sprintf("unknown event type (%q)", string(e))
+func (e UnknownEventTypeError) Error() string {
+	return fmt.Sprintf("unknown event type (%q)", e.Event)
 }

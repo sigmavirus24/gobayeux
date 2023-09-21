@@ -86,7 +86,7 @@ func (csm *ConnectionStateMachine) ProcessEvent(e Event) error {
 		atomic.SwapInt32(csm.currentState, unconnected)
 	case successfullyConnected:
 		if !atomic.CompareAndSwapInt32(csm.currentState, connecting, connected) {
-			return newBadConnect(*csm.currentState, connecting, connected)
+			return newBadConnection(*csm.currentState, connecting, connected)
 		}
 	case disconnectSent:
 		currentState := atomic.LoadInt32(csm.currentState)
@@ -94,7 +94,7 @@ func (csm *ConnectionStateMachine) ProcessEvent(e Event) error {
 			atomic.StoreInt32(csm.currentState, unconnected)
 		}
 	default:
-		return ErrUnknownEventType(e)
+		return UnknownEventTypeError{e}
 	}
 	return nil
 }
