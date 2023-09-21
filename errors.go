@@ -1,36 +1,41 @@
 package gobayeux
 
 import (
-	"errors"
 	"fmt"
 )
 
-var (
+const (
 	// ErrClientNotConnected is returned when the client is not connected
-	ErrClientNotConnected = errors.New("client not connected to server")
+	ErrClientNotConnected = sentinal("client not connected to server")
 
 	// ErrTooManyMessages is returned when there is more than one handshake message
-	ErrTooManyMessages = errors.New("more messages than expected in handshake response")
+	ErrTooManyMessages = sentinal("more messages than expected in handshake response")
 
 	// ErrBadChannel is returned when the handshake response is on the wrong channel
-	ErrBadChannel = errors.New("handshake responses must come back via the /meta/handshake channel")
+	ErrBadChannel = sentinal("handshake responses must come back via the /meta/handshake channel")
 
 	// ErrFailedToConnect is a general connection error
-	ErrFailedToConnect = errors.New("connect request was not successful")
+	ErrFailedToConnect = sentinal("connect request was not successful")
 
 	// ErrNoSupportedConnectionTypes is returned when the client and server
 	// aren't able to agree on a connection type
-	ErrNoSupportedConnectionTypes = errors.New("no supported connection types provided")
+	ErrNoSupportedConnectionTypes = sentinal("no supported connection types provided")
 
 	// ErrNoVersion is returned when a version is not provided
-	ErrNoVersion = errors.New("no version specified")
+	ErrNoVersion = sentinal("no version specified")
 
 	// ErrMissingClientID is returned when the client id has not been set
-	ErrMissingClientID = errors.New("missing clientID value")
+	ErrMissingClientID = sentinal("missing clientID value")
 
 	// ErrMissingConnectionType is returned when the connection type is unset
-	ErrMissingConnectionType = errors.New("missing connectionType value")
+	ErrMissingConnectionType = sentinal("missing connectionType value")
 )
+
+type sentinal string
+
+func (s sentinal) Error() string {
+	return string(s)
+}
 
 // ConnectionFailedError is returned whenever Connect is called and it fails
 type ConnectionFailedError struct {
