@@ -1,3 +1,13 @@
+v2.1.0
+------
+
+- Add concrete error types to package to make checking errors easier (rather
+  than returning errors dynamically from functions that would require string
+  checking). See also https://github.com/sigmavirus24/gobayeux/pull/20
+
+- Fix bug where message extensions were applied after messages were already
+  encoded. See also https://github.com/sigmavirus24/gobayeux/pull/12
+
 v2.0.0
 ------
 
