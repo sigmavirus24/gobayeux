@@ -80,13 +80,13 @@ func (csm *ConnectionStateMachine) ProcessEvent(e Event) error {
 	switch e {
 	case handshakeSent:
 		if !atomic.CompareAndSwapInt32(csm.currentState, unconnected, connecting) {
-			return newBadHanshake(*csm.currentState, unconnected, connecting)
+			return newBadHanshake(atomic.LoadInt32(csm.currentState), unconnected, connecting)
 		}
 	case timeout:
 		atomic.SwapInt32(csm.currentState, unconnected)
 	case successfullyConnected:
 		if !atomic.CompareAndSwapInt32(csm.currentState, connecting, connected) {
-			return newBadConnection(*csm.currentState, connecting, connected)
+			return newBadConnection(atomic.LoadInt32(csm.currentState), connecting, connected)
 		}
 	case disconnectSent:
 		currentState := atomic.LoadInt32(csm.currentState)
