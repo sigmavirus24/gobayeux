@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
-	"fmt"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
@@ -67,32 +65,32 @@ func (b *BayeuxClient) Handshake(ctx context.Context) ([]Message, error) {
 	logger.Debug("starting")
 	if err := b.stateMachine.ProcessEvent(handshakeSent); err != nil {
 		logger.WithError(err).Debug("invalid action for current state")
-		return nil, err
+		return nil, HandshakeFailedError{err}
 	}
 	builder := NewHandshakeRequestBuilder()
 	if err := builder.AddVersion("1.0"); err != nil {
-		return nil, err
+		return nil, HandshakeFailedError{err}
 	}
 	if err := builder.AddSupportedConnectionType("long-polling"); err != nil {
-		return nil, err
+		return nil, HandshakeFailedError{err}
 	}
 	ms, err := builder.Build()
 	if err != nil {
-		return nil, err
+		return nil, HandshakeFailedError{err}
 	}
 	resp, err := b.request(ctx, ms)
 	if err != nil {
 		logger.WithError(err).Debug("error during request")
-		return nil, err
+		return nil, HandshakeFailedError{err}
 	}
 
 	response, err := b.parseResponse(resp)
 	if err != nil {
 		logger.WithError(err).Debug("error parsing response")
-		return response, err
+		return response, HandshakeFailedError{err}
 	}
 	if len(response) > 1 {
-		return response, errors.New("more messages than expected in handshake response")
+		return response, HandshakeFailedError{ErrTooManyMessages}
 	}
 
 	var message Message
@@ -102,10 +100,10 @@ func (b *BayeuxClient) Handshake(ctx context.Context) ([]Message, error) {
 		}
 	}
 	if message.Channel == emptyChannel {
-		return response, errors.New("handshake responses must come back via the /meta/handshake channel")
+		return response, HandshakeFailedError{ErrBadChannel}
 	}
 	if !message.Successful {
-		return response, fmt.Errorf("handshake was not successful: %s", message.Error)
+		return response, newHandshakeError(message.Error)
 	}
 	b.state.SetClientID(message.ClientID)
 	_ = b.stateMachine.ProcessEvent(successfullyConnected)
@@ -122,31 +120,31 @@ func (b *BayeuxClient) Connect(ctx context.Context) ([]Message, error) {
 	logger.Debug("starting")
 	clientID := b.state.GetClientID()
 	if !b.stateMachine.IsConnected() || clientID == "" {
-		return nil, errors.New("client not connected to server")
+		return nil, ErrClientNotConnected
 	}
 	builder := NewConnectRequestBuilder()
 	builder.AddClientID(clientID)
 	_ = builder.AddConnectionType(ConnectionTypeLongPolling)
 	ms, err := builder.Build()
 	if err != nil {
-		return nil, err
+		return nil, ConnectionFailedError{err}
 	}
 
 	resp, err := b.request(ctx, ms)
 	if err != nil {
 		logger.WithError(err).Debug("error during request")
-		return nil, err
+		return nil, ConnectionFailedError{err}
 	}
 
 	response, err := b.parseResponse(resp)
 	if err != nil {
 		logger.WithError(err).Debug("error parsing response")
-		return response, err
+		return response, ConnectionFailedError{err}
 	}
 
 	for _, m := range response {
 		if m.Channel == MetaConnect && !m.Successful {
-			return response, errors.New("connect request was not successful")
+			return response, ConnectionFailedError{ErrFailedToConnect}
 		}
 	}
 	logger.WithField("duration", time.Since(start)).Debug("finishing")
@@ -162,35 +160,38 @@ func (b *BayeuxClient) Subscribe(ctx context.Context, subscriptions []Channel) (
 	clientID := b.state.GetClientID()
 	if !b.stateMachine.IsConnected() || clientID == "" {
 		logger.Debug("cannot subscribe because client is not connected")
-		return nil, errors.New("client not connected to server")
+		return nil, SubscriptionFailedError{subscriptions, ErrClientNotConnected}
 	}
 
 	builder := NewSubscribeRequestBuilder()
 	builder.AddClientID(clientID)
 	for _, s := range subscriptions {
 		if err := builder.AddSubscription(s); err != nil {
-			return nil, err
+			return nil, SubscriptionFailedError{subscriptions, err}
 		}
 	}
 
 	ms, err := builder.Build()
 	if err != nil {
-		return nil, err
+		return nil, SubscriptionFailedError{subscriptions, err}
 	}
 
 	resp, err := b.request(ctx, ms)
 	if err != nil {
-		return nil, err
+		return nil, SubscriptionFailedError{subscriptions, err}
 	}
 
 	response, err := b.parseResponse(resp)
 	if err != nil {
-		return response, err
+		return nil, SubscriptionFailedError{subscriptions, err}
 	}
 
 	for _, m := range response {
 		if m.Channel == MetaSubscribe && !m.Successful {
-			return response, fmt.Errorf("unable to subscribe to channels: %s", m.Error)
+			return nil, SubscriptionFailedError{
+				Channels: subscriptions,
+				Err:      newSubscribeError(m.Error),
+			}
 		}
 	}
 	logger.WithField("duration", time.Since(start)).Debug("finishing")
@@ -202,35 +203,38 @@ func (b *BayeuxClient) Subscribe(ctx context.Context, subscriptions []Channel) (
 func (b *BayeuxClient) Unsubscribe(ctx context.Context, subscriptions []Channel) ([]Message, error) {
 	clientID := b.state.GetClientID()
 	if !b.stateMachine.IsConnected() || clientID == "" {
-		return nil, errors.New("client not connected to server")
+		return nil, UnsubscribeFailedError{subscriptions, ErrClientNotConnected}
 	}
 
 	builder := NewUnsubscribeRequestBuilder()
 	builder.AddClientID(clientID)
 	for _, s := range subscriptions {
 		if err := builder.AddSubscription(s); err != nil {
-			return nil, err
+			return nil, UnsubscribeFailedError{subscriptions, err}
 		}
 	}
 
 	ms, err := builder.Build()
 	if err != nil {
-		return nil, err
+		return nil, UnsubscribeFailedError{subscriptions, err}
 	}
 
 	resp, err := b.request(ctx, ms)
 	if err != nil {
-		return nil, err
+		return nil, UnsubscribeFailedError{subscriptions, err}
 	}
 
 	response, err := b.parseResponse(resp)
 	if err != nil {
-		return response, err
+		return response, UnsubscribeFailedError{subscriptions, err}
 	}
 
 	for _, m := range response {
 		if m.Channel == MetaUnsubscribe && !m.Successful {
-			return response, fmt.Errorf("unable to unsubscribe from channels: %s", m.Error)
+			return response, UnsubscribeFailedError{
+				Channels: subscriptions,
+				Err:      newUnsubscribeError(m.Error),
+			}
 		}
 	}
 	return response, nil
@@ -241,29 +245,29 @@ func (b *BayeuxClient) Unsubscribe(ctx context.Context, subscriptions []Channel)
 func (b *BayeuxClient) Disconnect(ctx context.Context) ([]Message, error) {
 	clientID := b.state.GetClientID()
 	if !b.stateMachine.IsConnected() || clientID == "" {
-		return nil, errors.New("client isn't connected")
+		return nil, DisconnectFailedError{ErrClientNotConnected}
 	}
 
 	builder := NewDisconnectRequestBuilder()
 	builder.AddClientID(clientID)
 	ms, err := builder.Build()
 	if err != nil {
-		return nil, err
+		return nil, DisconnectFailedError{err}
 	}
 
 	resp, err := b.request(ctx, ms)
 	if err != nil {
-		return nil, err
+		return nil, DisconnectFailedError{err}
 	}
 
 	response, err := b.parseResponse(resp)
 	if err != nil {
-		return response, err
+		return response, DisconnectFailedError{err}
 	}
 
 	for _, m := range response {
 		if m.Channel == MetaDisconnect && !m.Successful {
-			return response, errors.New("unable to disconnect from Bayeux server")
+			return response, DisconnectFailedError{nil}
 		}
 	}
 	return response, nil
@@ -274,7 +278,7 @@ func (b *BayeuxClient) Disconnect(ctx context.Context) ([]Message, error) {
 func (b *BayeuxClient) UseExtension(ext MessageExtender) error {
 	for _, registered := range b.exts {
 		if ext == registered {
-			return fmt.Errorf("extension already registered: %s", ext)
+			return AlreadyRegisteredError{ext}
 		}
 	}
 	b.exts = append(b.exts, ext)
@@ -307,11 +311,7 @@ func (b *BayeuxClient) parseResponse(resp *http.Response) ([]Message, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf(
-			"expected 200 response from bayeux server, got %d with status '%s'",
-			resp.StatusCode,
-			resp.Status,
-		)
+		return nil, BadResponseError{resp.StatusCode, resp.Status}
 	}
 
 	if err := json.NewDecoder(resp.Body).Decode(&messages); err != nil {

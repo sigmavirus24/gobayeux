@@ -1,8 +1,6 @@
 package gobayeux
 
 import (
-	"errors"
-	"fmt"
 	"strconv"
 	"strings"
 )
@@ -44,7 +42,7 @@ func (b *HandshakeRequestBuilder) AddSupportedConnectionType(connectionType stri
 		}
 		b.supportedConnectionTypes = append(b.supportedConnectionTypes, connectionType)
 	default:
-		return fmt.Errorf("'%s' is not a valid connection type", connectionType)
+		return BadConnectionTypeError{connectionType}
 	}
 	return nil
 }
@@ -52,26 +50,20 @@ func (b *HandshakeRequestBuilder) AddSupportedConnectionType(connectionType stri
 // AddVersion accepts the version of the Bayeux protocol that the client
 // supports.
 func (b *HandshakeRequestBuilder) AddVersion(version string) error {
-	if len(version) < 1 {
-		return fmt.Errorf("version '%s' is invalid for Bayeux protocol", version)
-	}
-	pieces := strings.SplitN(version, ".", 2)
-	if _, err := strconv.Atoi(pieces[0]); err != nil {
+	if err := validateVersion(version); err != nil {
 		return err
 	}
+
 	b.version = version
 	return nil
 }
 
 // AddMinimumVersion adds the minimum supported version
 func (b *HandshakeRequestBuilder) AddMinimumVersion(version string) error {
-	if len(version) < 1 {
-		return fmt.Errorf("version '%s' is invalid for Bayeux protocol", version)
-	}
-	pieces := strings.SplitN(version, ".", 2)
-	if _, err := strconv.Atoi(pieces[0]); err != nil {
+	if err := validateVersion(version); err != nil {
 		return err
 	}
+
 	b.minimumVersion = version
 	return nil
 }
@@ -79,10 +71,10 @@ func (b *HandshakeRequestBuilder) AddMinimumVersion(version string) error {
 // Build generates the final Message to be sent as a Handshake Request
 func (b *HandshakeRequestBuilder) Build() ([]Message, error) {
 	if len(b.supportedConnectionTypes) < 1 {
-		return nil, errors.New("no supported connection types provided")
+		return nil, ErrNoSupportedConnectionTypes
 	}
 	if len(b.version) == 0 {
-		return nil, errors.New("no version specified")
+		return nil, ErrNoVersion
 	}
 	m := Message{
 		Channel:                  MetaHandshake,
@@ -125,7 +117,7 @@ func (b *ConnectRequestBuilder) AddConnectionType(connectionType string) error {
 	case ConnectionTypeCallbackPolling, ConnectionTypeLongPolling, ConnectionTypeIFrame:
 		b.connectionType = connectionType
 	default:
-		return fmt.Errorf("'%s' is not a valid connection type", connectionType)
+		return BadConnectionTypeError{connectionType}
 	}
 	return nil
 }
@@ -135,11 +127,11 @@ func (b *ConnectRequestBuilder) AddConnectionType(connectionType string) error {
 // Build generates the final Message to be sent as a Connect Request
 func (b *ConnectRequestBuilder) Build() ([]Message, error) {
 	if b.clientID == "" {
-		return nil, errors.New("missing clientID value")
+		return nil, ErrMissingClientID
 	}
 
 	if b.connectionType == "" {
-		return nil, errors.New("missing connectionType value")
+		return nil, ErrMissingConnectionType
 	}
 
 	m := Message{
@@ -176,7 +168,7 @@ func (b *SubscribeRequestBuilder) AddClientID(clientID string) {
 // sent in a /meta/subscribe request
 func (b *SubscribeRequestBuilder) AddSubscription(c Channel) error {
 	if !c.IsValid() {
-		return fmt.Errorf("channel %s appears to not be a valid channel", c)
+		return InvalidChannelError{c}
 	}
 
 	for _, s := range b.subscription {
@@ -191,11 +183,11 @@ func (b *SubscribeRequestBuilder) AddSubscription(c Channel) error {
 // Build generates the final Message to be sent as a Subscribe Request
 func (b *SubscribeRequestBuilder) Build() ([]Message, error) {
 	if b.clientID == "" {
-		return nil, errors.New("missing clientID value")
+		return nil, ErrMissingClientID
 	}
 
 	if len(b.subscription) < 1 {
-		return nil, errors.New("no subscriptions provided")
+		return nil, EmptySliceError("subscriptions")
 	}
 
 	ms := make([]Message, len(b.subscription))
@@ -237,7 +229,7 @@ func (b *UnsubscribeRequestBuilder) AddClientID(clientID string) {
 // sent in a /meta/unsubscribe request
 func (b *UnsubscribeRequestBuilder) AddSubscription(c Channel) error {
 	if !c.IsValid() {
-		return fmt.Errorf("channel %s appears to not be a valid channel", c)
+		return InvalidChannelError{c}
 	}
 
 	for _, s := range b.subscription {
@@ -252,11 +244,11 @@ func (b *UnsubscribeRequestBuilder) AddSubscription(c Channel) error {
 // Build generates the final Message to be sent as a Unsubscribe Request
 func (b *UnsubscribeRequestBuilder) Build() ([]Message, error) {
 	if b.clientID == "" {
-		return nil, errors.New("missing clientID value")
+		return nil, ErrMissingClientID
 	}
 
 	if len(b.subscription) < 1 {
-		return nil, errors.New("no subscriptions provided")
+		return nil, EmptySliceError("subscriptions")
 	}
 
 	ms := make([]Message, len(b.subscription))
@@ -294,8 +286,21 @@ func (b *DisconnectRequestBuilder) AddClientID(clientID string) {
 // Build generates the final Message to be sent as a Disconnect Request
 func (b *DisconnectRequestBuilder) Build() ([]Message, error) {
 	if b.clientID == "" {
-		return nil, errors.New("missing clientID value")
+		return nil, ErrMissingClientID
 	}
 
 	return []Message{{Channel: MetaDisconnect, ClientID: b.clientID}}, nil
+}
+
+func validateVersion(version string) error {
+	if len(version) < 1 {
+		return BadConnectionVersionError{version}
+	}
+
+	pieces := strings.SplitN(version, ".", 2)
+	if _, err := strconv.Atoi(pieces[0]); err != nil {
+		return BadConnectionVersionError{version}
+	}
+
+	return nil
 }

@@ -7,8 +7,8 @@
 //
 // Example Usage:
 //
-//    client := gobayeux.NewClient(serverAddress)
-//    client.UseExtension(replay.New(replay.NewMapStorage()))
+//	client := gobayeux.NewClient(serverAddress)
+//	client.UseExtension(replay.New(replay.NewMapStorage()))
 package replay
 
 import (
