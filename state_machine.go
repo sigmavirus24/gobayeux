@@ -14,7 +14,13 @@ const (
 	connected
 )
 
-var stateNames = []string{"unconnected", "connecting", "connected"}
+const (
+	unconnectedRepr StateRepresentation = "UNCONNECTED"
+	connectingRepr  StateRepresentation = "CONNECTING"
+	connectedRepr   StateRepresentation = "CONNECTED"
+)
+
+var stateNames = []StateRepresentation{unconnectedRepr, connectingRepr, connectedRepr}
 
 func stateName(state int32) string {
 	s := int(state)
@@ -22,14 +28,8 @@ func stateName(state int32) string {
 		return "unknown"
 	}
 
-	return stateNames[s]
+	return string(stateNames[s])
 }
-
-const (
-	unconnectedRepr StateRepresentation = "UNCONNECTED"
-	connectingRepr  StateRepresentation = "CONNECTING"
-	connectedRepr   StateRepresentation = "CONNECTED"
-)
 
 // Event represents and event that can change the state of a state machine
 type Event string
