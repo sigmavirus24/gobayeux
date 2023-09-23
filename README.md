@@ -1,6 +1,6 @@
 # gobayeux
 
-[![PkgGoDev](https://pkg.go.dev/badge/github.com/sigmavirus24/gobayeux)](https://pkg.go.dev/github.com/sigmavirus24/gobayeux)
+[![PkgGoDev](https://pkg.go.dev/badge/github.com/sigmavirus24/gobayeux/v2)](https://pkg.go.dev/github.com/sigmavirus24/gobayeux/v2)
 [![Test](https://github.com/sigmavirus24/gobayeux/workflows/Test/badge.svg)](https://github.com/sigmavirus24/gobayeux/actions?query=workflow:Test)
 [![Build](https://github.com/sigmavirus24/gobayeux/workflows/Build/badge.svg)](https://github.com/sigmavirus24/gobayeux/actions?query=workflow:Build)
 [![Lint](https://github.com/sigmavirus24/gobayeux/workflows/Lint/badge.svg)](https://github.com/sigmavirus24/gobayeux/actions?query=workflow:Lint)
@@ -10,13 +10,13 @@ and [Faye](https://faye.jcoglan.com/) servers.
 
 ### Documentation
 
-- [API Reference](https://pkg.go.dev/github.com/sigmavirus24/gobayeux)
+- [API Reference](https://pkg.go.dev/github.com/sigmavirus24/gobayeux/v2)
 - [Protocol specification](https://docs.cometd.org/current/reference/#_bayeux)
 
 ### Installation
 
 ```bash
-go get github.com/sigmavirus24/gobayeux
+go get github.com/sigmavirus24/gobayeux/v2
 ```
 
 ### Status

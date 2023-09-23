@@ -7,8 +7,9 @@ import (
 	"net/url"
 	"os"
 
-	"github.com/sigmavirus24/gobayeux"
 	"github.com/sirupsen/logrus"
+
+	gobayeux "github.com/sigmavirus24/gobayeux/v2"
 )
 
 type config struct {
