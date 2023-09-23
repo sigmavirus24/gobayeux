@@ -1,9 +1,9 @@
-name: Commit linting
+name: "Commit linting"
 
 on: [push, pull_request]
 
 jobs:
-  build:
+  commit-lint:
 
     runs-on: ubuntu-latest
 
