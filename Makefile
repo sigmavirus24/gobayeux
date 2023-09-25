@@ -13,3 +13,6 @@ test:
 
 bench:
 	make -C v2 bench
+
+show-cov:
+	make -C v2 show-cov
