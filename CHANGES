@@ -1,3 +1,8 @@
+v2.2.0
+------
+
+- Return the response `Body` as part of a `BadResponseError`
+
 v2.1.2
 ------
 
