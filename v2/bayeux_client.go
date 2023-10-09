@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
@@ -311,7 +312,12 @@ func (b *BayeuxClient) parseResponse(resp *http.Response) ([]Message, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		return nil, BadResponseError{resp.StatusCode, resp.Status}
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			b.logger.WithError(err).Debug("error reading body")
+		}
+
+		return nil, BadResponseError{resp.StatusCode, resp.Status, body}
 	}
 
 	if err := json.NewDecoder(resp.Body).Decode(&messages); err != nil {

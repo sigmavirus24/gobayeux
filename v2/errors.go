@@ -148,6 +148,7 @@ func (e AlreadyRegisteredError) Error() string {
 type BadResponseError struct {
 	StatusCode int
 	Status     string
+	Body       []byte
 }
 
 func (e BadResponseError) Error() string {
