@@ -29,6 +29,9 @@ func ExampleWithSlogLogger() {
 
 	errs := client.Start(context.Background())
 	err = <-errs
+	if err == nil {
+		panic("expected an error when connecting")
+	}
 	// Output:
 	// level=DEBUG msg=starting at=handshake
 	// level=DEBUG msg="error during request" at=handshake error="Post \"http://localhost:9876\": dial tcp 127.0.0.1:9876: connect: connection refused"
