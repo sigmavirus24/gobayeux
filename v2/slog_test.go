@@ -22,7 +22,7 @@ func ExampleWithSlogLogger() {
 			return a
 		},
 	}))
-	client, err := gobayeux.NewClient("http://localhost:9876", gobayeux.WithSlogLogger(logger))
+	client, err := gobayeux.NewClient("http://127.0.0.1:9876", gobayeux.WithSlogLogger(logger))
 	if err != nil {
 		panic(err)
 	}
@@ -34,5 +34,5 @@ func ExampleWithSlogLogger() {
 	}
 	// Output:
 	// level=DEBUG msg=starting at=handshake
-	// level=DEBUG msg="error during request" at=handshake error="Post \"http://localhost:9876\": dial tcp 127.0.0.1:9876: connect: connection refused"
+	// level=DEBUG msg="error during request" at=handshake error="Post \"http://127.0.0.1:9876\": dial tcp 127.0.0.1:9876: connect: connection refused"
 }
