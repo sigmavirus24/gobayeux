@@ -11,7 +11,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/sirupsen/logrus"
 	"golang.org/x/net/publicsuffix"
 )
 
@@ -22,11 +21,11 @@ type BayeuxClient struct {
 	serverAddress *url.URL
 	state         *clientState
 	exts          []MessageExtender
-	logger        logrus.FieldLogger
+	logger        Logger
 }
 
 // NewBayeuxClient initializes a BayeuxClient for the user
-func NewBayeuxClient(client *http.Client, transport http.RoundTripper, serverAddress string, logger logrus.FieldLogger) (*BayeuxClient, error) {
+func NewBayeuxClient(client *http.Client, transport http.RoundTripper, serverAddress string, logger Logger) (*BayeuxClient, error) {
 	if client == nil {
 		client = http.DefaultClient
 
@@ -47,7 +46,7 @@ func NewBayeuxClient(client *http.Client, transport http.RoundTripper, serverAdd
 	}
 
 	if logger == nil {
-		logger = logrus.New()
+		logger = newNullLogger()
 	}
 
 	return &BayeuxClient{

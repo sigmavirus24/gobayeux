@@ -12,7 +12,7 @@ import (
 type Client struct {
 	client                    *BayeuxClient
 	subscriptions             *subscriptionsMap
-	logger                    logrus.FieldLogger
+	logger                    Logger
 	subscribeRequestChannel   chan subscriptionRequest
 	unsubscribeRequestChannel chan Channel
 	connectRequestChannel     chan struct{}
@@ -23,7 +23,7 @@ type Client struct {
 
 // Options stores the available configuration options for a Client
 type Options struct {
-	Logger    logrus.FieldLogger
+	Logger    Logger
 	Client    *http.Client
 	Transport http.RoundTripper
 }
@@ -32,9 +32,16 @@ type Options struct {
 type Option func(*Options)
 
 // WithLogger returns an Option with logger.
-func WithLogger(logger logrus.FieldLogger) Option {
+func WithLogger(logger Logger) Option {
 	return func(options *Options) {
 		options.Logger = logger
+	}
+}
+
+// WithFieldLogger returns an Option with logger.
+func WithFieldLogger(logger logrus.FieldLogger) Option {
+	return func(options *Options) {
+		options.Logger = &wrappedFieldLogger{logger}
 	}
 }
 
@@ -64,9 +71,7 @@ func NewClient(serverAddress string, opts ...Option) (*Client, error) {
 	}
 
 	if options.Logger == nil {
-		l := logrus.New()
-		l.SetLevel(logrus.PanicLevel)
-		options.Logger = l
+		options.Logger = newNullLogger()
 	}
 
 	bc, err := NewBayeuxClient(options.Client, options.Transport, serverAddress, options.Logger)
