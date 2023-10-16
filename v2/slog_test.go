@@ -6,10 +6,17 @@ package gobayeux_test
 import (
 	"context"
 	"log/slog"
+	"net/http"
 	"os"
 
 	"github.com/sigmavirus24/gobayeux/v2"
 )
+
+type roundTripFn func(*http.Request) (*http.Response, error)
+
+func (fn roundTripFn) RoundTrip(r *http.Request) (*http.Response, error) {
+	return fn(r)
+}
 
 func ExampleWithSlogLogger() {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
@@ -22,7 +29,18 @@ func ExampleWithSlogLogger() {
 			return a
 		},
 	}))
-	client, err := gobayeux.NewClient("http://127.0.0.1:9876", gobayeux.WithSlogLogger(logger))
+
+	handler := roundTripFn(func(r *http.Request) (*http.Response, error) {
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Status:     http.StatusText(http.StatusOK),
+		}, nil
+	})
+
+	client, err := gobayeux.NewClient("http://127.0.0.1:9876",
+		gobayeux.WithSlogLogger(logger),
+		gobayeux.WithHTTPTransport(handler),
+	)
 	if err != nil {
 		panic(err)
 	}
@@ -34,5 +52,5 @@ func ExampleWithSlogLogger() {
 	}
 	// Output:
 	// level=DEBUG msg=starting at=handshake
-	// level=DEBUG msg="error during request" at=handshake error="Post \"http://127.0.0.1:9876\": dial tcp 127.0.0.1:9876: connect: connection refused"
+	// level=DEBUG msg="error parsing response" at=handshake error=EOF
 }
