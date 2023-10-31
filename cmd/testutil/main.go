@@ -57,7 +57,7 @@ func main() {
 	logger.SetLevel(level)
 
 	u := url.URL{Scheme: cfg.Protocol, Host: fmt.Sprintf("%s:%d", cfg.Hostname, cfg.Port), Path: cfg.Path}
-	client, err := gobayeux.NewClient(u.String(), gobayeux.WithLogger(logger))
+	client, err := gobayeux.NewClient(u.String(), gobayeux.WithFieldLogger(logger))
 	if err != nil {
 		fmt.Printf("error initializing client: %q\n", err)
 		os.Exit(1)
