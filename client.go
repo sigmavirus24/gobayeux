@@ -19,13 +19,15 @@ type Client struct {
 	connectMessageChannel     chan []Message
 	handshakeRequestChannel   chan struct{}
 	shutdown                  chan struct{}
+	stopOnError               bool
 }
 
 // Options stores the available configuration options for a Client
 type Options struct {
-	Logger    logrus.FieldLogger
-	Client    *http.Client
-	Transport http.RoundTripper
+	Logger          logrus.FieldLogger
+	Client          *http.Client
+	Transport       http.RoundTripper
+	ContinueOnError bool
 }
 
 // Option defines the type passed into NewClient for configuration
@@ -49,6 +51,14 @@ func WithHTTPClient(client *http.Client) Option {
 func WithHTTPTransport(transport http.RoundTripper) Option {
 	return func(options *Options) {
 		options.Transport = transport
+	}
+}
+
+// WithContinueOnError doesn't stop the poll loop on error when subscribing or
+// unsubscribing.
+func WithContinueOnError() Option {
+	return func(options *Options) {
+		options.ContinueOnError = true
 	}
 }
 
@@ -84,6 +94,7 @@ func NewClient(serverAddress string, opts ...Option) (*Client, error) {
 		handshakeRequestChannel:   make(chan struct{}),
 		shutdown:                  make(chan struct{}),
 		logger:                    options.Logger,
+		stopOnError:               !options.ContinueOnError,
 	}, nil
 }
 
@@ -198,7 +209,7 @@ _poll_loop:
 			channels = append(channels, subReq.subscription)
 			// TODO: Find a way to consolidate this logic and the logic in
 			// start()
-			if _, err := c.client.Subscribe(ctx, channels); err != nil {
+			if _, err := c.client.Subscribe(ctx, channels); err != nil && c.stopOnError {
 				return err
 			}
 
@@ -214,7 +225,7 @@ _poll_loop:
 			logger.Debug("got unsubscribe requests")
 			channels := c.getUnsubscriptionRequests()
 			channels = append(channels, unsubReq)
-			if _, err := c.client.Unsubscribe(ctx, channels); err != nil {
+			if _, err := c.client.Unsubscribe(ctx, channels); err != nil && c.stopOnError {
 				return err
 			}
 
