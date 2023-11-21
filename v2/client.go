@@ -19,13 +19,15 @@ type Client struct {
 	connectMessageChannel     chan []Message
 	handshakeRequestChannel   chan struct{}
 	shutdown                  chan struct{}
+	stopOnError               bool
 }
 
 // Options stores the available configuration options for a Client
 type Options struct {
-	Logger    Logger
-	Client    *http.Client
-	Transport http.RoundTripper
+	Logger          Logger
+	Client          *http.Client
+	Transport       http.RoundTripper
+	ContinueOnError bool
 }
 
 // Option defines the type passed into NewClient for configuration
@@ -59,6 +61,16 @@ func WithHTTPTransport(transport http.RoundTripper) Option {
 	}
 }
 
+// WithContinueOnError if true doesn't stop the poll loop on error when
+// subscribing or unsubscribing.
+//
+// The default is to stop when an error is received.
+func WithContinueOnError(c bool) Option {
+	return func(options *Options) {
+		options.ContinueOnError = c
+	}
+}
+
 // NewClient creates a new high-level client
 func NewClient(serverAddress string, opts ...Option) (*Client, error) {
 	options := &Options{}
@@ -89,6 +101,7 @@ func NewClient(serverAddress string, opts ...Option) (*Client, error) {
 		handshakeRequestChannel:   make(chan struct{}),
 		shutdown:                  make(chan struct{}),
 		logger:                    options.Logger,
+		stopOnError:               !options.ContinueOnError,
 	}, nil
 }
 
@@ -145,28 +158,9 @@ func (c *Client) start(ctx context.Context, errors chan error) {
 	}
 
 	_ = c.subscriptions.Add(MetaConnect, c.connectMessageChannel)
-	/*
-		subReqs, channels := c.getSubscriptionRequests()
-
-		logger.WithField("count", len(channels)).Debug("issuing subscription requests")
-		if _, err := c.client.Subscribe(ctx, channels); err != nil {
-			errors <- err
-			return
-		}
-
-		for _, subReq := range subReqs {
-			if err := c.subscriptions.Add(subReq.subscription, subReq.msgChan); err != nil {
-				logger.WithError(err).Debug("unable to add subscription")
-				errors <- err
-				return
-			}
-		}
-
-		c.enqueueConnectRequest()
-	*/
 
 	logger.Debug("starting long-polling loop")
-	if err := c.poll(ctx); err != nil {
+	if err := c.poll(ctx, errors); err != nil {
 		errors <- err
 		return
 	}
@@ -177,7 +171,7 @@ func (c *Client) start(ctx context.Context, errors chan error) {
 	}
 }
 
-func (c *Client) poll(ctx context.Context) error {
+func (c *Client) poll(ctx context.Context, errors chan<- error) error {
 	logger := c.logger.WithField("at", "poll")
 _poll_loop:
 	for {
@@ -204,7 +198,12 @@ _poll_loop:
 			// TODO: Find a way to consolidate this logic and the logic in
 			// start()
 			if _, err := c.client.Subscribe(ctx, channels); err != nil {
-				return err
+				if c.stopOnError {
+					return err
+				}
+
+				errors <- err
+				goto _poll_loop
 			}
 
 			for _, subReq := range subReqs {
@@ -220,7 +219,12 @@ _poll_loop:
 			channels := c.getUnsubscriptionRequests()
 			channels = append(channels, unsubReq)
 			if _, err := c.client.Unsubscribe(ctx, channels); err != nil {
-				return err
+				if c.stopOnError {
+					return err
+				}
+
+				errors <- err
+				goto _poll_loop
 			}
 
 			for _, channel := range channels {
