@@ -203,12 +203,17 @@ _poll_loop:
 				}
 
 				errors <- err
-				goto _poll_loop
+				continue
 			}
 
 			for _, subReq := range subReqs {
 				if err := c.subscriptions.Add(subReq.subscription, subReq.msgChan); err != nil {
-					return err
+					if c.stopOnError {
+						return err
+					}
+
+					errors <- err
+					continue
 				}
 			}
 
@@ -224,7 +229,7 @@ _poll_loop:
 				}
 
 				errors <- err
-				goto _poll_loop
+				continue
 			}
 
 			for _, channel := range channels {
