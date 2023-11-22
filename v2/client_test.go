@@ -43,6 +43,9 @@ func TestSubscribe(t *testing.T) {
 
 func TestCanDoubleSubscribe(t *testing.T) {
 	server := gobayeuxtest.NewServer(t)
+	if err := server.Start(context.Background()); err != nil {
+		t.Fatalf("failed to start test server (%v)", err)
+	}
 
 	client, err := gobayeux.NewClient(
 		"https://example.com",
@@ -86,5 +89,13 @@ func TestCanDoubleSubscribe(t *testing.T) {
 		}
 	case <-time.After(10 * time.Second):
 		t.Fatal("test timed out")
+	}
+
+	if err := client.Disconnect(context.Background()); err != nil {
+		t.Fatalf("failed to disconnect (%v)", err)
+	}
+
+	if err := server.Stop(context.Background()); err != nil {
+		t.Fatalf("failed to stop test server (%v)", err)
 	}
 }
