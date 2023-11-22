@@ -7,7 +7,6 @@ import (
 	"io"
 	"math/rand"
 	"net/http"
-	"strings"
 	"sync"
 	"time"
 
@@ -68,6 +67,7 @@ func (s *Server) RoundTrip(req *http.Request) (*http.Response, error) {
 	}
 
 	replies := []*gobayeux.Message{}
+	statusCode := http.StatusOK
 
 	for _, msg := range msgs {
 		s.log.Logf("msg: %+v\n", msg)
@@ -108,32 +108,25 @@ func (s *Server) RoundTrip(req *http.Request) (*http.Response, error) {
 				s.subs[msg.ClientID] = make([]gobayeux.Channel, 0)
 			}
 
-			for _, ch := range s.subs[msg.ClientID] {
-				if ch == msg.Subscription {
-					return &http.Response{
-						StatusCode: http.StatusBadRequest,
-						Body: io.NopCloser(strings.NewReader(fmt.Sprintf(`[
-                        {
-                            "channel": "/meta/subscribe",
-                            "id": "%s",
-                            "client_id": "%s",
-                            "successful": false,
-                            "error": "403:%s:already subscribed"
-                        }
-                        ]`, msg.ID, msg.ClientID, msg.Subscription))),
-					}, nil
-				}
-			}
-
-			s.subs[msg.ClientID] = append(s.subs[msg.ClientID], msg.Subscription)
-
-			replies = append(replies, &gobayeux.Message{
+			reply := &gobayeux.Message{
 				Channel:      "/meta/subscribe",
 				ID:           msg.ID,
 				ClientID:     msg.ClientID,
 				Successful:   true,
 				Subscription: msg.Subscription,
-			})
+			}
+
+			for _, ch := range s.subs[msg.ClientID] {
+				if ch == msg.Subscription {
+					statusCode = http.StatusBadRequest
+					reply.Successful = false
+					reply.Error = "403:%s:already subscribed"
+				}
+			}
+
+			s.subs[msg.ClientID] = append(s.subs[msg.ClientID], msg.Subscription)
+
+			replies = append(replies, reply)
 		default:
 			s.log.Logf("unhandled: %+v", msg)
 		}
@@ -147,7 +140,7 @@ func (s *Server) RoundTrip(req *http.Request) (*http.Response, error) {
 	s.log.Logf("reply: %s\n", reply)
 
 	return &http.Response{
-		StatusCode: http.StatusOK,
+		StatusCode: statusCode,
 		Body:       io.NopCloser(bytes.NewReader(reply)),
 	}, nil
 }
