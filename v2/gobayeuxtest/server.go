@@ -9,7 +9,6 @@ import (
 	"math/rand"
 	"net/http"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/sigmavirus24/gobayeux/v2"
@@ -38,10 +37,9 @@ type Logger interface {
 type Server struct {
 	log Logger
 
-	mu   sync.Mutex
-	subs map[string][]gobayeux.Channel
-
-	running atomic.Bool
+	mu      sync.Mutex
+	running bool
+	subs    map[string][]gobayeux.Channel
 }
 
 func NewServer(logger Logger) *Server {
@@ -52,24 +50,30 @@ func NewServer(logger Logger) *Server {
 }
 
 func (s *Server) Start(context.Context) error {
-	s.running.Store(true)
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.running = true
 
 	return nil
 }
 
 func (s *Server) Stop(context.Context) error {
-	s.running.Store(false)
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.running = false
 
 	return nil
 }
 
 func (s *Server) RoundTrip(req *http.Request) (*http.Response, error) {
-	if running := s.running.Load(); !running {
-		return nil, errors.New("server not running")
-	}
-
 	s.mu.Lock()
 	defer s.mu.Unlock()
+
+	if !s.running {
+		return nil, errors.New("server not running")
+	}
 
 	defer req.Body.Close()
 

@@ -3,6 +3,7 @@ package gobayeux_test
 import (
 	"context"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -61,7 +62,10 @@ func TestCanDoubleSubscribe(t *testing.T) {
 	msgs := make(chan []gobayeux.Message)
 	errs := client.Start(context.Background())
 
-	go func(msgs <-chan []gobayeux.Message, errs <-chan error, done chan<- error) {
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
 		defer close(done)
 
 		count := 0
@@ -77,7 +81,7 @@ func TestCanDoubleSubscribe(t *testing.T) {
 				}
 			}
 		}
-	}(msgs, errs, done)
+	}()
 
 	client.Subscribe("/foo/bar", msgs)
 	client.Subscribe("/foo/bar", msgs)
@@ -98,4 +102,6 @@ func TestCanDoubleSubscribe(t *testing.T) {
 	if err := server.Stop(context.Background()); err != nil {
 		t.Fatalf("failed to stop test server (%v)", err)
 	}
+
+	wg.Wait()
 }
