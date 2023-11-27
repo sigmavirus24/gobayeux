@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/sigmavirus24/gobayeux/v2"
-	"github.com/sigmavirus24/gobayeux/v2/gobayeuxtest"
+	"github.com/sigmavirus24/gobayeux/v2/internal/gobayeuxtest"
 )
 
 func TestNewClient(t *testing.T) {
