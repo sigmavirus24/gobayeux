@@ -22,6 +22,8 @@ type Client struct {
 	ignoreError               IgnoreErrorFunc
 }
 
+// IgnoreErrorFunc is a callback function that inspects an error and determines
+// if it can be safely ignored when subscribing and unsubscribing.
 type IgnoreErrorFunc func(error) bool
 
 // Options stores the available configuration options for a Client
