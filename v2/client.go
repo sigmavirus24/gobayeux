@@ -19,15 +19,17 @@ type Client struct {
 	connectMessageChannel     chan []Message
 	handshakeRequestChannel   chan struct{}
 	shutdown                  chan struct{}
-	stopOnError               bool
+	ignoreError               IgnoreErrorFunc
 }
+
+type IgnoreErrorFunc func(error) bool
 
 // Options stores the available configuration options for a Client
 type Options struct {
-	Logger          Logger
-	Client          *http.Client
-	Transport       http.RoundTripper
-	ContinueOnError bool
+	Logger      Logger
+	Client      *http.Client
+	Transport   http.RoundTripper
+	IgnoreError IgnoreErrorFunc
 }
 
 // Option defines the type passed into NewClient for configuration
@@ -61,13 +63,14 @@ func WithHTTPTransport(transport http.RoundTripper) Option {
 	}
 }
 
-// WithContinueOnError if true doesn't stop the poll loop on error when
-// subscribing or unsubscribing.
+// WithIgnoreError takes a function that will be called whenever an error is
+// returned while subscribing or unsubscribing. If the function returns true,
+// the error will not be considered fatal the the event loop will continue.
 //
 // The default is to stop when an error is received.
-func WithContinueOnError(c bool) Option {
+func WithIgnoreError(f IgnoreErrorFunc) Option {
 	return func(options *Options) {
-		options.ContinueOnError = c
+		options.IgnoreError = f
 	}
 }
 
@@ -86,6 +89,12 @@ func NewClient(serverAddress string, opts ...Option) (*Client, error) {
 		options.Logger = newNullLogger()
 	}
 
+	if options.IgnoreError == nil {
+		options.IgnoreError = func(err error) bool {
+			return false
+		}
+	}
+
 	bc, err := NewBayeuxClient(options.Client, options.Transport, serverAddress, options.Logger)
 	if err != nil {
 		return nil, err
@@ -101,7 +110,7 @@ func NewClient(serverAddress string, opts ...Option) (*Client, error) {
 		handshakeRequestChannel:   make(chan struct{}),
 		shutdown:                  make(chan struct{}),
 		logger:                    options.Logger,
-		stopOnError:               !options.ContinueOnError,
+		ignoreError:               options.IgnoreError,
 	}, nil
 }
 
@@ -198,22 +207,22 @@ _poll_loop:
 			// TODO: Find a way to consolidate this logic and the logic in
 			// start()
 			if _, err := c.client.Subscribe(ctx, channels); err != nil {
-				if c.stopOnError {
-					return err
+				if c.ignoreError(err) {
+					errors <- err
+					continue
 				}
 
-				errors <- err
-				continue
+				return err
 			}
 
 			for _, subReq := range subReqs {
 				if err := c.subscriptions.Add(subReq.subscription, subReq.msgChan); err != nil {
-					if c.stopOnError {
-						return err
+					if c.ignoreError(err) {
+						errors <- err
+						continue
 					}
 
-					errors <- err
-					continue
+					return err
 				}
 			}
 
@@ -224,12 +233,12 @@ _poll_loop:
 			channels := c.getUnsubscriptionRequests()
 			channels = append(channels, unsubReq)
 			if _, err := c.client.Unsubscribe(ctx, channels); err != nil {
-				if c.stopOnError {
-					return err
+				if c.ignoreError(err) {
+					errors <- err
+					continue
 				}
 
-				errors <- err
-				continue
+				return err
 			}
 
 			for _, channel := range channels {

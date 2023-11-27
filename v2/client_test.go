@@ -51,7 +51,7 @@ func TestCanDoubleSubscribe(t *testing.T) {
 	client, err := gobayeux.NewClient(
 		"https://example.com",
 		gobayeux.WithHTTPTransport(server),
-		gobayeux.WithContinueOnError(true),
+		gobayeux.WithIgnoreError(func(err error) bool { return true }),
 	)
 
 	if err != nil {
