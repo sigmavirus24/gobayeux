@@ -4,6 +4,10 @@ v2.4.0
 - Add client option `WithIgnoreError` to continue polling even if an error is
   returned on `Subscribe`/`Unsubscribe` if the callback function returns true.
 
+- Stop relying on `http.DefaultClient` if the user does not pass their own
+  `http.Client`. Instead, build a new one relying on the default client's
+  settings
+
 v2.3.0
 ------
 
