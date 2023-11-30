@@ -1,3 +1,9 @@
+v2.4.0
+------
+
+- Add client option `WithIgnoreError` to continue polling even if an error is
+  returned on `Subscribe`/`Unsubscribe` if the callback function returns true.
+
 v2.3.0
 ------
 
