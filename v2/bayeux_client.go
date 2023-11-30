@@ -27,13 +27,17 @@ type BayeuxClient struct {
 // NewBayeuxClient initializes a BayeuxClient for the user
 func NewBayeuxClient(client *http.Client, transport http.RoundTripper, serverAddress string, logger Logger) (*BayeuxClient, error) {
 	if client == nil {
-		client = http.DefaultClient
-
 		jar, err := cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
 		if err != nil {
 			return nil, err
 		}
-		client.Jar = jar
+
+		client = &http.Client{
+			Transport:     http.DefaultClient.Transport,
+			CheckRedirect: http.DefaultClient.CheckRedirect,
+			Jar:           jar,
+			Timeout:       http.DefaultClient.Timeout,
+		}
 	}
 	if transport == nil {
 		transport = http.DefaultTransport
