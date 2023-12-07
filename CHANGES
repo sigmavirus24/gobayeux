@@ -1,3 +1,8 @@
+v2.4.1
+------
+
+- Prevent race condition in `salesforce.StaticTokenAuthenticator`
+
 v2.4.0
 ------
 
