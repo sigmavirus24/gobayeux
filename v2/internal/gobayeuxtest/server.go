@@ -95,7 +95,6 @@ func (s *Server) RoundTrip(req *http.Request) (*http.Response, error) {
 	statusCode := http.StatusOK
 
 	for _, msg := range msgs {
-		s.log.Logf("msg: %+v\n", msg)
 		switch msg.Channel {
 		case "/meta/handshake":
 			replies = append(replies, &gobayeux.Message{
@@ -152,6 +151,48 @@ func (s *Server) RoundTrip(req *http.Request) (*http.Response, error) {
 			s.subs[msg.ClientID] = append(s.subs[msg.ClientID], msg.Subscription)
 
 			replies = append(replies, reply)
+		case "/meta/unsubscribe":
+			if _, ok := s.subs[msg.ClientID]; !ok {
+				s.subs[msg.ClientID] = make([]gobayeux.Channel, 0)
+			}
+
+			reply := &gobayeux.Message{
+				Channel:      "/meta/unsubscribe",
+				ID:           msg.ID,
+				ClientID:     msg.ClientID,
+				Successful:   true,
+				Subscription: msg.Subscription,
+			}
+
+			found := false
+			subs := []gobayeux.Channel{}
+			for _, ch := range s.subs[msg.ClientID] {
+				if ch == msg.Subscription {
+					found = true
+					continue
+				}
+
+				subs = append(subs, ch)
+			}
+
+			s.subs[msg.ClientID] = subs
+
+			if !found {
+				statusCode = http.StatusBadRequest
+				reply.Successful = false
+				reply.Error = "403:%s:not subscribed"
+			}
+
+			replies = append(replies, reply)
+		case "/meta/disconnect":
+			delete(s.subs, msg.ClientID)
+
+			replies = append(replies, &gobayeux.Message{
+				Channel:    "/meta/disconnect",
+				ID:         msg.ID,
+				ClientID:   msg.ClientID,
+				Successful: true,
+			})
 		default:
 			s.log.Logf("unhandled: %+v", msg)
 		}
@@ -161,8 +202,6 @@ func (s *Server) RoundTrip(req *http.Request) (*http.Response, error) {
 	if err != nil {
 		return nil, fmt.Errorf("issue marshaling body (%w)", err)
 	}
-
-	s.log.Logf("reply: %s\n", reply)
 
 	return &http.Response{
 		StatusCode: statusCode,

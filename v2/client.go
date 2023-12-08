@@ -121,6 +121,11 @@ func (c *Client) Subscribe(ch Channel, receiving chan []Message) {
 	c.subscribeRequestChannel <- subscriptionRequest{ch, receiving}
 }
 
+// Unsubscribe queues a request to unsubscribe from a channel on the server
+func (c *Client) Unsubscribe(ch Channel) {
+	c.unsubscribeRequestChannel <- ch
+}
+
 // Start begins the background process that talks to the server
 func (c *Client) Start(ctx context.Context) <-chan error {
 	errors := make(chan error)

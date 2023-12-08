@@ -1,3 +1,8 @@
+v2.5.0
+------
+
+- Add `Client.Unsubscribe` allowing unsubscriptions on the high level client.
+
 v2.4.1
 ------
 
