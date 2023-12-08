@@ -10,6 +10,7 @@ import (
 	"errors"
 	"net/http"
 	"strings"
+	"sync"
 )
 
 // StaticTokenAuthenticator adds your Salesforce Access Token to your
@@ -22,7 +23,9 @@ type StaticTokenAuthenticator struct {
 	// Transport is any http transport that satisfies the http.RoundTripper
 	// interface
 	Transport http.RoundTripper
-	cookies   []*http.Cookie
+
+	mu      sync.RWMutex
+	cookies []*http.Cookie
 }
 
 // RoundTrip implements the RoundTripper interface
@@ -36,15 +39,22 @@ func (t *StaticTokenAuthenticator) RoundTrip(request *http.Request) (*http.Respo
 
 	newRequest := deepCopyRequestWitHeaders(request)
 	newRequest.Header.Set("Authorization", "Bearer "+t.Token)
+
+	t.mu.RLock()
 	for _, cookie := range t.cookies {
 		newRequest.AddCookie(cookie)
 	}
+	t.mu.RUnlock()
 
 	resp, err := t.Transport.RoundTrip(newRequest)
 	if err != nil {
 		return resp, err
 	}
+
+	t.mu.Lock()
 	t.cookies = resp.Cookies()
+	t.mu.Unlock()
+
 	return resp, nil
 }
 
