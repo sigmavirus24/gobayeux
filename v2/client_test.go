@@ -2,6 +2,7 @@ package gobayeux_test
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"sync"
 	"testing"
@@ -42,6 +43,90 @@ func TestSubscribe(t *testing.T) {
 	client.Subscribe("/foo/bar", nil)
 }
 
+func TestUnsubscribe(t *testing.T) {
+	server := gobayeuxtest.NewServer(t)
+	if err := server.Start(context.Background()); err != nil {
+		t.Fatalf("failed to start test server (%v)", err)
+	}
+
+	client, err := gobayeux.NewClient(
+		"https://example.com",
+		gobayeux.WithHTTPTransport(server),
+		gobayeux.WithIgnoreError(func(err error) bool { return true }),
+	)
+
+	if err != nil {
+		t.Fatalf("failed to create client (%v)", err)
+	}
+
+	done := make(chan error)
+	recv := make(chan interface{})
+	msgs := make(chan []gobayeux.Message)
+	errs := client.Start(context.Background())
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		defer close(done)
+
+		count := 0
+		for {
+			select {
+			case ms := <-msgs:
+				if count == 0 {
+					close(recv)
+				}
+
+				count += len(ms)
+			case err := <-errs:
+				done <- err
+				return
+			case <-time.After(2 * time.Second):
+				// After Unsubscribe we shouldn't receive any more so a timeout
+				// with a count greater than zero is success
+				if count == 0 {
+					done <- fmt.Errorf("timeout with no messages received")
+				}
+
+				return
+			}
+		}
+	}()
+
+	client.Subscribe("/foo/bar", msgs)
+
+	// Wait until at least one message is received or fail on timeout
+	select {
+	case <-recv:
+	case <-time.After(2 * time.Second):
+		t.Fatalf("timeout on recv")
+	}
+
+	client.Unsubscribe("/foo/bar")
+
+	// Wait until the worker timeout and done closes without error or timeout
+	// and fail
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatal(err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatalf("timeout on recv")
+	}
+
+	if err := client.Disconnect(context.Background()); err != nil {
+		t.Fatalf("failed to disconnect (%v)", err)
+	}
+
+	if err := server.Stop(context.Background()); err != nil {
+		t.Fatalf("failed to stop test server (%v)", err)
+	}
+
+	wg.Wait()
+}
+
 func TestCanDoubleSubscribe(t *testing.T) {
 	server := gobayeuxtest.NewServer(t)
 	if err := server.Start(context.Background()); err != nil {
@@ -72,7 +157,6 @@ func TestCanDoubleSubscribe(t *testing.T) {
 		for count < 100 {
 			select {
 			case ms := <-msgs:
-				t.Logf("count: %v", count)
 				count += len(ms)
 			case err := <-errs:
 				if !strings.Contains(err.Error(), "already subscribed") {
