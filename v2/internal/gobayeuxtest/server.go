@@ -75,7 +75,11 @@ func (s *Server) RoundTrip(req *http.Request) (*http.Response, error) {
 		return nil, errors.New("server not running")
 	}
 
-	defer req.Body.Close()
+	defer func() {
+		if err := req.Body.Close(); err != nil {
+			s.log.Logf("could not close test server request body: %+v", err)
+		}
+	}()
 
 	var msgs []*gobayeux.Message
 

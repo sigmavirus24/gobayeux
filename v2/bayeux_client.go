@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
+	"slices"
 	"sync"
 	"time"
 
@@ -280,10 +281,8 @@ func (b *BayeuxClient) Disconnect(ctx context.Context) ([]Message, error) {
 // UseExtension adds the provided MessageExtender to the list of known
 // extensions
 func (b *BayeuxClient) UseExtension(ext MessageExtender) error {
-	for _, registered := range b.exts {
-		if ext == registered {
-			return AlreadyRegisteredError{ext}
-		}
+	if slices.Contains(b.exts, ext) {
+		return AlreadyRegisteredError{ext}
 	}
 	b.exts = append(b.exts, ext)
 	return nil
@@ -312,7 +311,11 @@ func (b *BayeuxClient) request(ctx context.Context, ms []Message) (*http.Respons
 
 func (b *BayeuxClient) parseResponse(resp *http.Response) ([]Message, error) {
 	messages := make([]Message, 0)
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			b.logger.WithError(err).Warn("could not close response body")
+		}
+	}()
 
 	if resp.StatusCode != 200 {
 		body, err := io.ReadAll(resp.Body)
