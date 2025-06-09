@@ -7,7 +7,7 @@ toolchain go1.24.1
 require (
 	github.com/sigmavirus24/gobayeux/v2 v2.5.0
 	github.com/sirupsen/logrus v1.9.3
-	golang.org/x/net v0.40.0
+	golang.org/x/net v0.41.0
 )
 
 require golang.org/x/sys v0.33.0 // indirect
