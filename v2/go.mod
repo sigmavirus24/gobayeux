@@ -1,12 +1,10 @@
 module github.com/sigmavirus24/gobayeux/v2
 
-go 1.23.0
-
-toolchain go1.23.7
+go 1.24.0
 
 require (
 	github.com/sirupsen/logrus v1.9.3
 	golang.org/x/net v0.43.0
 )
 
-require golang.org/x/sys v0.35.0 // indirect
+require golang.org/x/sys v0.36.0 // indirect
