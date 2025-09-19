@@ -21,3 +21,6 @@ go.work.sum
 # IDE files
 *idea
 *iml
+
+# vscode
+.vscode

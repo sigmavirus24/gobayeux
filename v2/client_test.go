@@ -189,3 +189,35 @@ func TestCanDoubleSubscribe(t *testing.T) {
 
 	wg.Wait()
 }
+
+func TestErrorParsing(t *testing.T) {
+	server := gobayeuxtest.NewServer(t, gobayeuxtest.WithHandshakeError(true))
+	if err := server.Start(context.Background()); err != nil {
+		t.Fatalf("failed to start test server (%v)", err)
+	}
+
+	client, err := gobayeux.NewClient(
+		"https://example.com",
+		gobayeux.WithHTTPTransport(server),
+	)
+	if err != nil {
+		t.Fatalf("failed to create client (%v)", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	errs := client.Start(ctx)
+	err = <-errs
+	if err == nil {
+		t.Fatal("expected an error when connecting")
+	}
+
+	if err.Error() != "expected 200 response from bayeux server, got 400 with status 'Bad Request' and body '{\"error\":\"Invalid request\"}'" {
+		t.Errorf("expected an error when connecting; got %v", err)
+	}
+
+	if err := server.Stop(context.Background()); err != nil {
+		t.Fatalf("failed to stop test server (%v)", err)
+	}
+}
