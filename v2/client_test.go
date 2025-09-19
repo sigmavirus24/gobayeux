@@ -214,7 +214,7 @@ func TestErrorParsing(t *testing.T) {
 	}
 
 	if err.Error() != "expected 200 response from bayeux server, got 400 with status 'Bad Request' and body '{\"error\":\"Invalid request\"}'" {
-		t.Errorf("expected an error when connecting; got %v", err)
+		t.Errorf("expected different error when connecting; got %v", err)
 	}
 
 	if err := server.Stop(context.Background()); err != nil {

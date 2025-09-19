@@ -111,7 +111,6 @@ func (s *Server) RoundTrip(req *http.Request) (*http.Response, error) {
 		switch msg.Channel {
 		case "/meta/handshake":
 			if s.handshakeError {
-				// For error parsing tests, always return a 400 Bad Request for handshake
 				return &http.Response{
 					StatusCode: http.StatusBadRequest,
 					Status:     http.StatusText(http.StatusBadRequest),
