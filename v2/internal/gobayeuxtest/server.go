@@ -40,13 +40,22 @@ type Server struct {
 	mu      sync.Mutex
 	running bool
 	subs    map[string][]gobayeux.Channel
+
+	handshakeError bool
 }
 
-func NewServer(logger Logger) *Server {
-	return &Server{
+func NewServer(logger Logger, opts ...ServerOpts) *Server {
+	server := &Server{
 		log:  logger,
 		subs: make(map[string][]gobayeux.Channel),
 	}
+
+	for _, opt := range opts {
+		opt.apply(server)
+	}
+
+	return server
+
 }
 
 func (s *Server) Start(context.Context) error {
@@ -101,6 +110,13 @@ func (s *Server) RoundTrip(req *http.Request) (*http.Response, error) {
 	for _, msg := range msgs {
 		switch msg.Channel {
 		case "/meta/handshake":
+			if s.handshakeError {
+				return &http.Response{
+					StatusCode: http.StatusBadRequest,
+					Status:     http.StatusText(http.StatusBadRequest),
+					Body:       io.NopCloser(bytes.NewReader([]byte(`{"error":"Invalid request"}`))),
+				}, nil
+			}
 			replies = append(replies, &gobayeux.Message{
 				Channel:                  "/meta/handshake",
 				Version:                  msg.Version,
