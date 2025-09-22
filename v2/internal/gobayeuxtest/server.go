@@ -127,7 +127,6 @@ func (s *Server) RoundTrip(req *http.Request) (*http.Response, error) {
 				Advice:                   advice,
 				ID:                       msg.ID,
 			})
-
 		case "/meta/connect":
 			if channels, ok := s.subs[msg.ClientID]; ok {
 				for _, ch := range channels {
