@@ -152,10 +152,9 @@ type BadResponseError struct {
 
 func (e BadResponseError) Error() string {
 	return fmt.Sprintf(
-		"expected 200 response from bayeux server, got %d with status '%s' and body '%s'",
+		"expected 200 response from bayeux server, got %d with status '%s'",
 		e.StatusCode,
 		e.Status,
-		e.Body,
 	)
 }
 
