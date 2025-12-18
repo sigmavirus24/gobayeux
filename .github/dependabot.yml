@@ -4,15 +4,27 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    groups:
+      actions-deps:
+        patterns:
+          - "*"
   - package-ecosystem: "gomod"
     directory: "/"
     schedule:
       interval: "weekly"
     allow:
       - dependency-type: "all"
+    groups:
+      gomod:
+        patterns:
+          - "*"
   - package-ecosystem: "gomod"
     directory: "/v2"
     schedule:
       interval: "weekly"
     allow:
       - dependency-type: "all"
+    groups:
+      gomodv2:
+        patterns:
+          - "*"
