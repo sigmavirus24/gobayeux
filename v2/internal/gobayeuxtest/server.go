@@ -2,6 +2,7 @@ package gobayeuxtest
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -12,7 +13,6 @@ import (
 	"time"
 
 	"github.com/sigmavirus24/gobayeux/v2"
-	"golang.org/x/net/context"
 )
 
 const (
