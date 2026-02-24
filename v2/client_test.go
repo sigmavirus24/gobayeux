@@ -210,7 +210,7 @@ func TestSubscribeWithContext(t *testing.T) {
 			t.Fatalf("expected a working client but got an err %q", err)
 		}
 
-		// Fill the channel to capacity so that the next SubscribewithContext blocks.
+		// Fill the channel to capacity so that the next subscription request blocks.
 		for i := range 10 {
 			client.Subscribe(gobayeux.Channel(fmt.Sprintf("/fill/%d", i)), nil)
 		}
@@ -250,7 +250,7 @@ func TestUnsubscribeWithContext(t *testing.T) {
 			t.Fatalf("expected a working client but got an err %q", err)
 		}
 
-		// Fill the channel to capacity so that the next UnsubscribeWithContext blocks.
+		// Fill the channel to capacity so that the next unsubscription request blocks.
 		for i := range 10 {
 			client.Unsubscribe(gobayeux.Channel(fmt.Sprintf("/fill/%d", i)))
 		}
