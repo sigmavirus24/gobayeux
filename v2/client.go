@@ -121,9 +121,33 @@ func (c *Client) Subscribe(ch Channel, receiving chan []Message) {
 	c.subscribeRequestChannel <- subscriptionRequest{ch, receiving}
 }
 
+// SubscribeWithContext queues a request to subscribe to a new channel from the server.
+// It respects the provided context and will return an error if the context is cancelled
+// before the subscription request can be queued.
+func (c *Client) SubscribeWithContext(ctx context.Context, ch Channel, receiving chan []Message) error {
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case c.subscribeRequestChannel <- subscriptionRequest{ch, receiving}:
+		return nil
+	}
+}
+
 // Unsubscribe queues a request to unsubscribe from a channel on the server
 func (c *Client) Unsubscribe(ch Channel) {
 	c.unsubscribeRequestChannel <- ch
+}
+
+// UnsubscribeWithContext queues a request to unsubscribe from a channel on the server.
+// It respects the provided context and will return an error if the context is cancelled
+// before the unsubscription request can be queued.
+func (c *Client) UnsubscribeWithContext(ctx context.Context, ch Channel) error {
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case c.unsubscribeRequestChannel <- ch:
+		return nil
+	}
 }
 
 // Start begins the background process that talks to the server
