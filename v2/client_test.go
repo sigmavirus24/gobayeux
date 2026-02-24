@@ -190,6 +190,86 @@ func TestCanDoubleSubscribe(t *testing.T) {
 	wg.Wait()
 }
 
+func TestSubscribeWithContext(t *testing.T) {
+	t.Run("succeeds with active context", func(t *testing.T) {
+		client, err := gobayeux.NewClient("https://example.com", nil)
+		if err != nil {
+			t.Fatalf("expected a working client but got an err %q", err)
+		}
+
+		ctx := context.Background()
+		err = client.SubscribeWithContext(ctx, "/foo/bar", nil)
+		if err != nil {
+			t.Errorf("expected SubscribeWithContext to succeed but got error: %v", err)
+		}
+	})
+
+	t.Run("respects timeout context", func(t *testing.T) {
+		client, err := gobayeux.NewClient("https://example.com", nil)
+		if err != nil {
+			t.Fatalf("expected a working client but got an err %q", err)
+		}
+
+		// Fill the channel to capacity so that the next subscription request blocks.
+		for i := range 10 {
+			client.Subscribe(gobayeux.Channel(fmt.Sprintf("/fill/%d", i)), nil)
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Millisecond)
+		defer cancel()
+
+		time.Sleep(2 * time.Millisecond) // Ensure timeout fires
+
+		err = client.SubscribeWithContext(ctx, "/foo/bar", nil)
+		if err == nil {
+			t.Error("expected SubscribeWithContext to return an error with expired context")
+		}
+		if err != context.DeadlineExceeded {
+			t.Errorf("expected context.DeadlineExceeded error, got: %v", err)
+		}
+	})
+}
+
+func TestUnsubscribeWithContext(t *testing.T) {
+	t.Run("succeeds with active context", func(t *testing.T) {
+		client, err := gobayeux.NewClient("https://example.com", nil)
+		if err != nil {
+			t.Fatalf("expected a working client but got an err %q", err)
+		}
+
+		ctx := context.Background()
+		err = client.UnsubscribeWithContext(ctx, "/foo/bar")
+		if err != nil {
+			t.Errorf("expected UnsubscribeWithContext to succeed but got error: %v", err)
+		}
+	})
+
+	t.Run("respects timeout context", func(t *testing.T) {
+		client, err := gobayeux.NewClient("https://example.com", nil)
+		if err != nil {
+			t.Fatalf("expected a working client but got an err %q", err)
+		}
+
+		// Fill the channel to capacity so that the next unsubscription request blocks.
+		for i := range 10 {
+			client.Unsubscribe(gobayeux.Channel(fmt.Sprintf("/fill/%d", i)))
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Millisecond)
+		defer cancel()
+
+		time.Sleep(2 * time.Millisecond) // Ensure timeout fires
+
+		err = client.UnsubscribeWithContext(ctx, "/foo/bar")
+		if err == nil {
+			t.Error("expected UnsubscribeWithContext to return an error with expired context")
+		}
+		if err != context.DeadlineExceeded {
+			t.Errorf("expected context.DeadlineExceeded error, got: %v", err)
+		}
+	})
+}
+
 func TestErrorParsing(t *testing.T) {
 	server := gobayeuxtest.NewServer(t, gobayeuxtest.WithHandshakeError(true))
 	if err := server.Start(context.Background()); err != nil {

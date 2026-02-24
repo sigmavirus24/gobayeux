@@ -1,3 +1,9 @@
+v2.6.0
+------
+
+- Add `Client.SubscribeWithContext` and `Client.UnsubscribeWithContext` to support
+  context-aware subscription management.
+
 v2.5.0
 ------
 
